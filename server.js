@@ -25,12 +25,12 @@ const agent = new https.Agent({
   rejectUnauthorized: true,
 });
 
-// 🔹 Test route
+//  Test route
 app.get("/", (req, res) => {
   res.send("🚀 Swish Payment API (Production) is running");
 });
 
-// 🔹 Route: Create Swish Payment
+//  Route: Create Swish Payment
 app.post("/api/create-swish-payment", async (req, res) => {
   const { phoneNumber, amount } = req.body;
 
@@ -38,7 +38,6 @@ app.post("/api/create-swish-payment", async (req, res) => {
     return res.status(400).json({ error: "Missing phoneNumber or amount" });
   }
 
-  // Validate and format phone number according to Swish docs
   // Format: country code + cellphone number (without leading zero)
   // Example: 46712345678 (no + sign, 8-15 digits total)
   let formattedPhone = phoneNumber
