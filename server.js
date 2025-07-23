@@ -11,6 +11,12 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
+// Store payment data in memory (use database in production)
+const paymentStore = new Map();
+
+// Serve static files from React build
+app.use(express.static(path.join(__dirname, "client/build")));
+
 // ✅ Load Production TLS certificate & private key
 const cert = fs.readFileSync(
   path.resolve(__dirname, process.env.SWISH_CERT_PATH)
@@ -97,6 +103,17 @@ app.post("/api/create-swish-payment", async (req, res) => {
       paymentRequestToken: response.data.id || uuid,
       status: "created",
     });
+
+    // Store payment data for status tracking
+    paymentStore.set(uuid, {
+      token: uuid,
+      paymentRequestToken: response.data.id || uuid,
+      status: "CREATED",
+      phoneNumber: formattedPhone,
+      amount: amount.toString(),
+      payeePaymentReference: paymentReference,
+      createdAt: new Date().toISOString(),
+    });
   } catch (error) {
     console.error("❌ Swish error:", error.response?.data || error.message);
     res.status(500).json({ error: "Failed to create Swish payment" });
@@ -106,9 +123,39 @@ app.post("/api/create-swish-payment", async (req, res) => {
 // 🔹 Route: Handle Swish Callback
 app.post("/swish-callback", (req, res) => {
   console.log("📩 Swish callback received:", req.body);
-  // TODO: Save payment result to your DB or update order status
+
+  // Extract payment information from callback
+  const { id, payeePaymentReference, status, paymentReference } = req.body;
+
+  // Update payment status in store
+  if (paymentStore.has(id)) {
+    const paymentData = paymentStore.get(id);
+    paymentData.status = status;
+    paymentData.paymentReference = paymentReference;
+    paymentData.completedAt = new Date().toISOString();
+    paymentStore.set(id, paymentData);
+
+    console.log(`✅ Payment ${id} updated to status: ${status}`);
+  }
 
   res.status(200).send(); // Required: Swish expects HTTP 200 OK
+});
+
+// 🔹 Route: Get Payment Status
+app.get("/api/payment-status/:token", (req, res) => {
+  const { token } = req.params;
+
+  if (!paymentStore.has(token)) {
+    return res.status(404).json({ error: "Payment not found" });
+  }
+
+  const paymentData = paymentStore.get(token);
+  res.json(paymentData);
+});
+
+// 🔹 Serve React App (catch-all handler)
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "client/build", "index.html"));
 });
 
 // 🔹 Start the server
