@@ -36,6 +36,31 @@ app.get("/", (req, res) => {
   res.send("🚀 Swish Payment API (Production) is running");
 });
 
+// 🔹 Test callback endpoint (for debugging)
+app.post("/test-callback", (req, res) => {
+  console.log("🧪 Test callback received:", JSON.stringify(req.body, null, 2));
+  res.status(200).json({ message: "Test callback received successfully" });
+});
+
+// 🔹 Manual status update (for testing without callback)
+app.post("/api/manual-status/:token", (req, res) => {
+  const { token } = req.params;
+  const { status } = req.body;
+  
+  console.log(`🔧 Manual status update: ${token} -> ${status}`);
+  
+  if (paymentStore.has(token)) {
+    const paymentData = paymentStore.get(token);
+    paymentData.status = status;
+    paymentData.completedAt = new Date().toISOString();
+    paymentStore.set(token, paymentData);
+    
+    res.json({ message: `Status updated to ${status}`, paymentData });
+  } else {
+    res.status(404).json({ error: "Payment not found" });
+  }
+});
+
 //  Route: Create Swish Payment
 app.post("/api/create-swish-payment", async (req, res) => {
   const { phoneNumber, amount } = req.body;
@@ -122,20 +147,30 @@ app.post("/api/create-swish-payment", async (req, res) => {
 
 // 🔹 Route: Handle Swish Callback
 app.post("/swish-callback", (req, res) => {
-  console.log("📩 Swish callback received:", req.body);
+  console.log("📩 Swish callback received:", JSON.stringify(req.body, null, 2));
 
   // Extract payment information from callback
   const { id, payeePaymentReference, status, paymentReference } = req.body;
 
+  console.log(`🔍 Looking for payment with ID: ${id}`);
+  console.log(`📋 Available payments in store:`, Array.from(paymentStore.keys()));
+
   // Update payment status in store
   if (paymentStore.has(id)) {
     const paymentData = paymentStore.get(id);
+    console.log(`📝 Current payment data:`, paymentData);
+    
     paymentData.status = status;
     paymentData.paymentReference = paymentReference;
     paymentData.completedAt = new Date().toISOString();
     paymentStore.set(id, paymentData);
 
     console.log(`✅ Payment ${id} updated to status: ${status}`);
+    console.log(`📋 Updated payment data:`, paymentData);
+  } else {
+    console.log(`❌ Payment ${id} not found in store!`);
+    // Log all available payment IDs for debugging
+    console.log(`📋 Available payment IDs:`, Array.from(paymentStore.keys()));
   }
 
   res.status(200).send(); // Required: Swish expects HTTP 200 OK
@@ -145,11 +180,16 @@ app.post("/swish-callback", (req, res) => {
 app.get("/api/payment-status/:token", (req, res) => {
   const { token } = req.params;
 
+  console.log(`🔍 Status check requested for token: ${token}`);
+
   if (!paymentStore.has(token)) {
+    console.log(`❌ Payment ${token} not found in store`);
     return res.status(404).json({ error: "Payment not found" });
   }
 
   const paymentData = paymentStore.get(token);
+  console.log(`📋 Returning payment status: ${paymentData.status} for token: ${token}`);
+  
   res.json(paymentData);
 });
 

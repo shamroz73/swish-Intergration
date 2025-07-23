@@ -88,6 +88,31 @@ const PaymentStatus = () => {
     navigate("/");
   };
 
+  // 🧪 Manual testing functions for simulating Swish callbacks
+  const handleManualSuccess = async () => {
+    try {
+      console.log(`🧪 Testing: Simulating PAID status for token: ${token}`);
+      const response = await axios.post(`/api/manual-status/${token}`, { 
+        status: 'PAID' 
+      });
+      console.log('✅ Manual success response:', response.data);
+    } catch (error) {
+      console.error('❌ Failed to simulate success:', error);
+    }
+  };
+
+  const handleManualFailure = async () => {
+    try {
+      console.log(`🧪 Testing: Simulating DECLINED status for token: ${token}`);
+      const response = await axios.post(`/api/manual-status/${token}`, { 
+        status: 'DECLINED' 
+      });
+      console.log('❌ Manual failure response:', response.data);
+    } catch (error) {
+      console.error('❌ Failed to simulate failure:', error);
+    }
+  };
+
   if (status === "pending") {
     return (
       <div className="status-card status-pending">
@@ -141,6 +166,53 @@ const PaymentStatus = () => {
           >
             Go Back
           </button>
+        </div>
+
+        {/* 🧪 Manual Testing Buttons - Remove in production */}
+        <div style={{ 
+          marginTop: '20px', 
+          padding: '16px', 
+          backgroundColor: '#e7f3ff', 
+          borderRadius: '8px',
+          border: '2px dashed #007bff' 
+        }}>
+          <h4 style={{ margin: '0 0 10px 0', color: '#007bff' }}>
+            🧪 Manual Testing (Development Only)
+          </h4>
+          <p style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '14px' }}>
+            Since Swish callback URL isn't set up for localhost, use these buttons to simulate payment results:
+          </p>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            <button
+              className="btn btn-primary"
+              onClick={handleManualSuccess}
+              style={{ 
+                backgroundColor: '#28a745', 
+                fontSize: '14px', 
+                padding: '10px 20px',
+                border: 'none',
+                borderRadius: '6px'
+              }}
+            >
+              ✅ Simulate Payment Success
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleManualFailure}
+              style={{ 
+                backgroundColor: '#dc3545', 
+                fontSize: '14px', 
+                padding: '10px 20px',
+                border: 'none',
+                borderRadius: '6px'
+              }}
+            >
+              ❌ Simulate Payment Failure
+            </button>
+          </div>
+          <p style={{ margin: '10px 0 0 0', color: '#6c757d', fontSize: '12px' }}>
+            Check the browser console for API call results. The page will update automatically after clicking.
+          </p>
         </div>
       </div>
     );
