@@ -20,21 +20,24 @@ const PaymentStatus = () => {
         // In a real implementation, you would have an endpoint to check payment status
         // For now, we'll simulate the status checking
         const response = await axios.get(`/api/payment-status/${token}`);
-        
-        if (response.data.status === 'PAID') {
-          setStatus('completed');
+
+        if (response.data.status === "PAID") {
+          setStatus("completed");
           setPaymentInfo(response.data);
-        } else if (response.data.status === 'DECLINED' || response.data.status === 'ERROR' || response.data.status === 'CANCELLED') {
-          setStatus('failed');
+        } else if (
+          response.data.status === "DECLINED" ||
+          response.data.status === "ERROR" ||
+          response.data.status === "CANCELLED"
+        ) {
+          setStatus("failed");
           setPaymentInfo(response.data);
         }
         // Continue polling if status is still CREATED or other pending status
-        
       } catch (error) {
-        console.error('Status check failed:', error);
+        console.error("Status check failed:", error);
         // If payment not found after some time, assume it was cancelled
         if (error.response?.status === 404) {
-          setStatus('cancelled');
+          setStatus("cancelled");
         }
       }
     };
@@ -76,7 +79,7 @@ const PaymentStatus = () => {
   };
 
   const handleCancelPayment = () => {
-    setStatus('cancelled');
+    setStatus("cancelled");
   };
 
   const handleNewPayment = () => {
@@ -92,24 +95,24 @@ const PaymentStatus = () => {
   const handleManualSuccess = async () => {
     try {
       console.log(`🧪 Testing: Simulating PAID status for token: ${token}`);
-      const response = await axios.post(`/api/manual-status/${token}`, { 
-        status: 'PAID' 
+      const response = await axios.post(`/api/manual-status/${token}`, {
+        status: "PAID",
       });
-      console.log('✅ Manual success response:', response.data);
+      console.log("✅ Manual success response:", response.data);
     } catch (error) {
-      console.error('❌ Failed to simulate success:', error);
+      console.error("❌ Failed to simulate success:", error);
     }
   };
 
   const handleManualFailure = async () => {
     try {
       console.log(`🧪 Testing: Simulating DECLINED status for token: ${token}`);
-      const response = await axios.post(`/api/manual-status/${token}`, { 
-        status: 'DECLINED' 
+      const response = await axios.post(`/api/manual-status/${token}`, {
+        status: "DECLINED",
       });
-      console.log('❌ Manual failure response:', response.data);
+      console.log("❌ Manual failure response:", response.data);
     } catch (error) {
-      console.error('❌ Failed to simulate failure:', error);
+      console.error("❌ Failed to simulate failure:", error);
     }
   };
 
@@ -151,47 +154,54 @@ const PaymentStatus = () => {
           </small>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+        <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
           <button
             className="btn btn-primary"
             onClick={handleCancelPayment}
-            style={{ backgroundColor: '#dc3545' }}
+            style={{ backgroundColor: "#dc3545" }}
           >
             Cancel Payment
           </button>
           <button
             className="btn btn-primary"
             onClick={handleNewPayment}
-            style={{ backgroundColor: '#6c757d' }}
+            style={{ backgroundColor: "#6c757d" }}
           >
             Go Back
           </button>
         </div>
 
         {/* 🧪 Manual Testing Buttons - Remove in production */}
-        <div style={{ 
-          marginTop: '20px', 
-          padding: '16px', 
-          backgroundColor: '#e7f3ff', 
-          borderRadius: '8px',
-          border: '2px dashed #007bff' 
-        }}>
-          <h4 style={{ margin: '0 0 10px 0', color: '#007bff' }}>
+        <div
+          style={{
+            marginTop: "20px",
+            padding: "16px",
+            backgroundColor: "#e7f3ff",
+            borderRadius: "8px",
+            border: "2px dashed #007bff",
+          }}
+        >
+          <h4 style={{ margin: "0 0 10px 0", color: "#007bff" }}>
             🧪 Manual Testing (Development Only)
           </h4>
-          <p style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '14px' }}>
-            Since Swish callback URL isn't set up for localhost, use these buttons to simulate payment results:
+          <p
+            style={{ margin: "0 0 15px 0", color: "#495057", fontSize: "14px" }}
+          >
+            Since Swish callback URL isn't set up for localhost, use these
+            buttons to simulate payment results:
           </p>
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+          <div
+            style={{ display: "flex", gap: "10px", justifyContent: "center" }}
+          >
             <button
               className="btn btn-primary"
               onClick={handleManualSuccess}
-              style={{ 
-                backgroundColor: '#28a745', 
-                fontSize: '14px', 
-                padding: '10px 20px',
-                border: 'none',
-                borderRadius: '6px'
+              style={{
+                backgroundColor: "#28a745",
+                fontSize: "14px",
+                padding: "10px 20px",
+                border: "none",
+                borderRadius: "6px",
               }}
             >
               ✅ Simulate Payment Success
@@ -199,19 +209,22 @@ const PaymentStatus = () => {
             <button
               className="btn btn-primary"
               onClick={handleManualFailure}
-              style={{ 
-                backgroundColor: '#dc3545', 
-                fontSize: '14px', 
-                padding: '10px 20px',
-                border: 'none',
-                borderRadius: '6px'
+              style={{
+                backgroundColor: "#dc3545",
+                fontSize: "14px",
+                padding: "10px 20px",
+                border: "none",
+                borderRadius: "6px",
               }}
             >
               ❌ Simulate Payment Failure
             </button>
           </div>
-          <p style={{ margin: '10px 0 0 0', color: '#6c757d', fontSize: '12px' }}>
-            Check the browser console for API call results. The page will update automatically after clicking.
+          <p
+            style={{ margin: "10px 0 0 0", color: "#6c757d", fontSize: "12px" }}
+          >
+            Check the browser console for API call results. The page will update
+            automatically after clicking.
           </p>
         </div>
       </div>
@@ -296,9 +309,10 @@ const PaymentStatus = () => {
         <div className="status-icon">❌</div>
         <h2 className="status-title">Payment Cancelled</h2>
         <p className="status-message">
-          The payment was cancelled. You can try again or go back to the main page.
+          The payment was cancelled. You can try again or go back to the main
+          page.
         </p>
-        
+
         <div className="payment-details">
           <h4>What happened?</h4>
           <p>The payment was cancelled either by:</p>

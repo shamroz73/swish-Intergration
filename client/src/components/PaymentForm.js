@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const PaymentForm = ({ onPaymentInitiated, paymentData }) => {
+const PaymentForm = () => {
   const [formData, setFormData] = useState({
     phoneNumber: "",
     amount: "",
@@ -73,14 +73,7 @@ const PaymentForm = ({ onPaymentInitiated, paymentData }) => {
         amount: formData.amount,
       });
 
-      const paymentInfo = {
-        ...response.data,
-        phoneNumber: formData.phoneNumber,
-        amount: formData.amount,
-        timestamp: new Date().toISOString(),
-      };
-
-      onPaymentInitiated(paymentInfo);
+      // Navigate directly to payment status page
       navigate(`/payment-status/${response.data.token}`);
     } catch (error) {
       console.error("Payment initiation failed:", error);
@@ -98,40 +91,6 @@ const PaymentForm = ({ onPaymentInitiated, paymentData }) => {
       setLoading(false);
     }
   };
-
-  const handleNewPayment = () => {
-    setFormData({ phoneNumber: "", amount: "" });
-    setError("");
-    onPaymentInitiated(null);
-  };
-
-  // Show success state if payment was completed
-  if (paymentData && paymentData.status === "completed") {
-    return (
-      <div className="status-card status-success">
-        <div className="status-icon">✅</div>
-        <h2 className="status-title">Payment Successful!</h2>
-        <div className="payment-details">
-          <h4>Payment Details</h4>
-          <p>
-            <strong>Amount:</strong> {paymentData.amount} SEK
-          </p>
-          <p>
-            <strong>Phone:</strong> {paymentData.phoneNumber}
-          </p>
-          <p>
-            <strong>Token:</strong> {paymentData.token}
-          </p>
-          <p>
-            <strong>Status:</strong> Completed
-          </p>
-        </div>
-        <button className="btn btn-primary" onClick={handleNewPayment}>
-          New Payment
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div className="payment-form">

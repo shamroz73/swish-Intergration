@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "client/build/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/swish-callback",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/test-callback",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/client/build/$1"
+    }
+  ],
+  "env": {
+    "PORT": "3000",
+    "SWISH_PAYEE_ALIAS": "1232475101",
+    "SWISH_API_URL": "https://cpc.getswish.net"
+  }
+}

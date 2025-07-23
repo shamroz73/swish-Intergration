@@ -18,12 +18,17 @@ const paymentStore = new Map();
 app.use(express.static(path.join(__dirname, "client/build")));
 
 // ✅ Load Production TLS certificate & private key
-const cert = fs.readFileSync(
-  path.resolve(__dirname, process.env.SWISH_CERT_PATH)
-);
-const key = fs.readFileSync(
-  path.resolve(__dirname, process.env.SWISH_KEY_PATH)
-);
+let cert, key;
+
+if (process.env.VERCEL) {
+  // For Vercel deployment - use base64 encoded certificates from environment variables
+  cert = Buffer.from(process.env.SWISH_CERT_BASE64 || "", "base64");
+  key = Buffer.from(process.env.SWISH_KEY_BASE64 || "", "base64");
+} else {
+  // For local development - use file paths
+  cert = fs.readFileSync(path.resolve(__dirname, process.env.SWISH_CERT_PATH));
+  key = fs.readFileSync(path.resolve(__dirname, process.env.SWISH_KEY_PATH));
+}
 
 const agent = new https.Agent({
   cert,
@@ -46,15 +51,15 @@ app.post("/test-callback", (req, res) => {
 app.post("/api/manual-status/:token", (req, res) => {
   const { token } = req.params;
   const { status } = req.body;
-  
+
   console.log(`🔧 Manual status update: ${token} -> ${status}`);
-  
+
   if (paymentStore.has(token)) {
     const paymentData = paymentStore.get(token);
     paymentData.status = status;
     paymentData.completedAt = new Date().toISOString();
     paymentStore.set(token, paymentData);
-    
+
     res.json({ message: `Status updated to ${status}`, paymentData });
   } else {
     res.status(404).json({ error: "Payment not found" });
@@ -153,13 +158,16 @@ app.post("/swish-callback", (req, res) => {
   const { id, payeePaymentReference, status, paymentReference } = req.body;
 
   console.log(`🔍 Looking for payment with ID: ${id}`);
-  console.log(`📋 Available payments in store:`, Array.from(paymentStore.keys()));
+  console.log(
+    `📋 Available payments in store:`,
+    Array.from(paymentStore.keys())
+  );
 
   // Update payment status in store
   if (paymentStore.has(id)) {
     const paymentData = paymentStore.get(id);
     console.log(`📝 Current payment data:`, paymentData);
-    
+
     paymentData.status = status;
     paymentData.paymentReference = paymentReference;
     paymentData.completedAt = new Date().toISOString();
@@ -188,8 +196,10 @@ app.get("/api/payment-status/:token", (req, res) => {
   }
 
   const paymentData = paymentStore.get(token);
-  console.log(`📋 Returning payment status: ${paymentData.status} for token: ${token}`);
-  
+  console.log(
+    `📋 Returning payment status: ${paymentData.status} for token: ${token}`
+  );
+
   res.json(paymentData);
 });
 
