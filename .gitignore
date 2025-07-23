@@ -1,2 +1,6 @@
 node_modules
 .vercel
+.env
+cert.base64
+key.base64
+client/build/
