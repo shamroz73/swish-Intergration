@@ -20,11 +20,31 @@ app.use(express.static(path.join(__dirname, "client/build")));
 // ✅ Load Production TLS certificate & private key
 let cert, key;
 
+console.log("🔧 Environment check:", {
+  isVercel: !!process.env.VERCEL,
+  hasCallbackUrl: !!process.env.SWISH_CALLBACK_URL,
+  hasPayeeAlias: !!process.env.SWISH_PAYEE_ALIAS,
+  hasApiUrl: !!process.env.SWISH_API_URL,
+  hasCertBase64: !!process.env.SWISH_CERT_BASE64,
+  hasKeyBase64: !!process.env.SWISH_KEY_BASE64,
+  certBase64Length: process.env.SWISH_CERT_BASE64?.length || 0,
+  keyBase64Length: process.env.SWISH_KEY_BASE64?.length || 0,
+});
+
 if (process.env.VERCEL) {
   // For Vercel deployment - use base64 encoded certificates from environment variables
+  console.log(
+    "🌟 Running on Vercel - loading certificates from environment variables"
+  );
   cert = Buffer.from(process.env.SWISH_CERT_BASE64 || "", "base64");
   key = Buffer.from(process.env.SWISH_KEY_BASE64 || "", "base64");
+
+  console.log("📜 Certificate loaded:", {
+    certSize: cert.length,
+    keySize: key.length,
+  });
 } else {
+  console.log("💻 Running locally - loading certificates from files");
   // For local development - use file paths
   cert = fs.readFileSync(path.resolve(__dirname, process.env.SWISH_CERT_PATH));
   key = fs.readFileSync(path.resolve(__dirname, process.env.SWISH_KEY_PATH));
@@ -68,59 +88,72 @@ app.post("/api/manual-status/:token", (req, res) => {
 
 //  Route: Create Swish Payment
 app.post("/api/create-swish-payment", async (req, res) => {
+  console.log("🚀 Payment request received:", req.body);
+
   const { phoneNumber, amount } = req.body;
 
   if (!phoneNumber || !amount) {
+    console.log("❌ Missing required fields:", { phoneNumber, amount });
     return res.status(400).json({ error: "Missing phoneNumber or amount" });
   }
 
-  // Format: country code + cellphone number (without leading zero)
-  // Example: 46712345678 (no + sign, 8-15 digits total)
-  let formattedPhone = phoneNumber
-    .toString()
-    .replace(/\s+/g, "")
-    .replace(/^\+/, "");
-
-  // If it starts with 0, remove it (Swedish mobile numbers)
-  if (formattedPhone.startsWith("0")) {
-    formattedPhone = "46" + formattedPhone.substring(1);
-  }
-
-  // If it doesn't start with country code, add 46
-  if (!formattedPhone.startsWith("46")) {
-    formattedPhone = "46" + formattedPhone;
-  }
-
-  // Validate phone number format (8-15 digits, numbers only)
-  if (!/^\d{8,15}$/.test(formattedPhone)) {
-    return res.status(400).json({
-      error: `Invalid phone number format. Must be 8-15 digits, format: country code + cellphone number. Got: ${formattedPhone}`,
-    });
-  }
-
-  // Generate UUID in correct format: 32 uppercase hex characters (no hyphens)
-  const uuid = crypto.randomUUID().replace(/-/g, "").toUpperCase();
-
-  // Generate a valid Swish Payment Reference (alphanumeric, max 35 chars)
-  const paymentReference = `YMP${Date.now()}${Math.random()
-    .toString(36)
-    .substring(2, 8)
-    .toUpperCase()}`;
-
-  const payload = {
-    payeePaymentReference: paymentReference,
-    callbackUrl: process.env.SWISH_CALLBACK_URL,
-    payerAlias: formattedPhone,
-    payeeAlias: process.env.SWISH_PAYEE_ALIAS,
-    amount: amount.toString(), // Must be string, not number
-    currency: "SEK",
-    message: "Payment to Yumplee",
-  };
-
-  // Use correct Swish API endpoint
-  const apiUrl = `${process.env.SWISH_API_URL}/swish-cpcapi/api/v2/paymentrequests`;
-
   try {
+    // Format: country code + cellphone number (without leading zero)
+    // Example: 46712345678 (no + sign, 8-15 digits total)
+    let formattedPhone = phoneNumber
+      .toString()
+      .replace(/\s+/g, "")
+      .replace(/^\+/, "");
+
+    // If it starts with 0, remove it (Swedish mobile numbers)
+    if (formattedPhone.startsWith("0")) {
+      formattedPhone = "46" + formattedPhone.substring(1);
+    }
+
+    // If it doesn't start with country code, add 46
+    if (!formattedPhone.startsWith("46")) {
+      formattedPhone = "46" + formattedPhone;
+    }
+
+    // Validate phone number format (8-15 digits, numbers only)
+    if (!/^\d{8,15}$/.test(formattedPhone)) {
+      return res.status(400).json({
+        error: `Invalid phone number format. Must be 8-15 digits, format: country code + cellphone number. Got: ${formattedPhone}`,
+      });
+    }
+
+    // Generate UUID in correct format: 32 uppercase hex characters (no hyphens)
+    const uuid = crypto.randomUUID().replace(/-/g, "").toUpperCase();
+
+    // Generate a valid Swish Payment Reference (alphanumeric, max 35 chars)
+    const paymentReference = `YMP${Date.now()}${Math.random()
+      .toString(36)
+      .substring(2, 8)
+      .toUpperCase()}`;
+
+    const payload = {
+      payeePaymentReference: paymentReference,
+      callbackUrl: process.env.SWISH_CALLBACK_URL,
+      payerAlias: formattedPhone,
+      payeeAlias: process.env.SWISH_PAYEE_ALIAS,
+      amount: amount.toString(), // Must be string, not number
+      currency: "SEK",
+      message: "Payment to Yumplee",
+    };
+
+    // Use correct Swish API endpoint
+    const apiUrl = `${process.env.SWISH_API_URL}/swish-cpcapi/api/v2/paymentrequests`;
+
+    console.log("🌐 Making request to Swish API:", {
+      url: `${apiUrl}/${uuid}`,
+      payload,
+      hasAgent: !!agent,
+      hasCert: !!cert,
+      hasKey: !!key,
+      certLength: cert?.length,
+      keyLength: key?.length,
+    });
+
     const response = await axios.put(`${apiUrl}/${uuid}`, payload, {
       httpsAgent: agent,
       headers: {
@@ -128,11 +161,7 @@ app.post("/api/create-swish-payment", async (req, res) => {
       },
     });
 
-    res.status(200).json({
-      token: uuid,
-      paymentRequestToken: response.data.id || uuid,
-      status: "created",
-    });
+    console.log("✅ Swish API response:", response.status, response.data);
 
     // Store payment data for status tracking
     paymentStore.set(uuid, {
@@ -144,14 +173,38 @@ app.post("/api/create-swish-payment", async (req, res) => {
       payeePaymentReference: paymentReference,
       createdAt: new Date().toISOString(),
     });
+
+    res.status(200).json({
+      token: uuid,
+      paymentRequestToken: response.data.id || uuid,
+      status: "created",
+    });
   } catch (error) {
-    console.error("❌ Swish error:", error.response?.data || error.message);
-    res.status(500).json({ error: "Failed to create Swish payment" });
+    console.error("❌ Swish API Error Details:", {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      code: error.code,
+      stack: error.stack,
+    });
+
+    // Return more specific error information
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "Failed to create Swish payment";
+    const statusCode = error.response?.status || 500;
+
+    res.status(statusCode).json({
+      error: errorMessage,
+      details: error.response?.data || "Internal server error",
+    });
   }
 });
 
 // 🔹 Route: Handle Swish Callback
-app.post("/swish-callback", (req, res) => {
+app.post("/api/swish/callback", (req, res) => {
   console.log("📩 Swish callback received:", JSON.stringify(req.body, null, 2));
 
   // Extract payment information from callback
@@ -174,41 +227,71 @@ app.post("/swish-callback", (req, res) => {
     paymentStore.set(id, paymentData);
 
     console.log(`✅ Payment ${id} updated to status: ${status}`);
-    console.log(`📋 Updated payment data:`, paymentData);
   } else {
-    console.log(`❌ Payment ${id} not found in store!`);
-    // Log all available payment IDs for debugging
-    console.log(`📋 Available payment IDs:`, Array.from(paymentStore.keys()));
+    console.log(`❌ Payment ${id} not found in local store`);
   }
 
-  res.status(200).send(); // Required: Swish expects HTTP 200 OK
+  // Respond to Swish (required)
+  res.status(200).json({ message: "Callback processed successfully" });
 });
 
 // 🔹 Route: Get Payment Status
 app.get("/api/payment-status/:token", (req, res) => {
   const { token } = req.params;
 
-  console.log(`🔍 Status check requested for token: ${token}`);
-
-  if (!paymentStore.has(token)) {
-    console.log(`❌ Payment ${token} not found in store`);
-    return res.status(404).json({ error: "Payment not found" });
+  if (paymentStore.has(token)) {
+    const paymentData = paymentStore.get(token);
+    res.json(paymentData);
+  } else {
+    res.status(404).json({ error: "Payment not found" });
   }
-
-  const paymentData = paymentStore.get(token);
-  console.log(
-    `📋 Returning payment status: ${paymentData.status} for token: ${token}`
-  );
-
-  res.json(paymentData);
 });
 
-// 🔹 Serve React App (catch-all handler)
+// Manual testing endpoints
+app.post("/api/test/create-payment", async (req, res) => {
+  console.log("🧪 Manual test payment creation");
+
+  const { phoneNumber = "46761234567", amount = "10.00" } = req.body;
+
+  // Create a fake payment for testing
+  const uuid = crypto.randomUUID().replace(/-/g, "").toUpperCase();
+
+  paymentStore.set(uuid, {
+    token: uuid,
+    paymentRequestToken: uuid,
+    status: "CREATED",
+    phoneNumber,
+    amount,
+    payeePaymentReference: `TEST${Date.now()}`,
+    createdAt: new Date().toISOString(),
+  });
+
+  res.json({
+    token: uuid,
+    paymentRequestToken: uuid,
+    status: "created",
+    message: "Test payment created (no actual Swish API call)",
+  });
+});
+
+app.get("/api/test/payment-status/:token", (req, res) => {
+  const { token } = req.params;
+
+  if (paymentStore.has(token)) {
+    const paymentData = paymentStore.get(token);
+    res.json(paymentData);
+  } else {
+    res.status(404).json({ error: "Test payment not found" });
+  }
+});
+
+// Catch-all handler: send back React's index.html file.
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "client/build", "index.html"));
+  res.sendFile(path.join(__dirname + "/client/build/index.html"));
 });
 
-// 🔹 Start the server
 app.listen(PORT, () => {
-  console.log(`✅ Server running in PRODUCTION at http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log(`📧 Callback URL: ${process.env.SWISH_CALLBACK_URL}`);
 });
