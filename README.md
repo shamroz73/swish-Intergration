@@ -1,110 +1,190 @@
-# Swish Payment Integration
+# 🇸🇪 Swish Payment Integration
 
-A complete full-stack application for integrating Swish payments with a React frontend and Node.js backend.
+A complete full-stack application for integrating Swedish Swish payments with real-time callbacks, featuring a React frontend and Node.js backend deployed on Vercel.
 
-## 🚀 Features
+## 🚀 Live Demo
 
-- **React Frontend**: Modern, responsive payment form with real-time status updates
-- **Node.js Backend**: Secure Swish API integration with proper certificate handling
-- **Complete Payment Flow**: From initiation to completion with callback handling
-- **Status Tracking**: Real-time payment status monitoring
-- **Error Handling**: Comprehensive error states and user feedback
-- **Mobile Responsive**: Optimized for mobile and desktop
+- **Production URL**: [https://swisp-lw54by11b-shamroz-warraichs-projects.vercel.app](https://swisp-lw54by11b-shamroz-warraichs-projects.vercel.app)
+- **Real-time Callbacks**: Instant payment status updates via Swish API webhooks
+
+## ✨ Features
+
+- ⚡ **Real-time Payment Updates**: No polling delays - instant status via Swish callbacks
+- 🎨 **Modern React Frontend**: Responsive payment form with real-time status updates
+- 🔒 **Secure Backend**: TLS certificate authentication with Swish production API
+- 🌐 **Serverless Deployment**: Auto-deploying Vercel integration with GitHub
+- 📱 **Mobile Optimized**: Works seamlessly with Swish mobile app
+- 🔄 **Complete Payment Flow**: From initiation to completion with proper error handling
+- 🛡️ **Production Ready**: Environment-aware certificate handling (local vs production)
+
+## 🏗️ Tech Stack
+
+- **Frontend**: React 18.2.0, Axios, CSS3
+- **Backend**: Node.js, Express, HTTPS client with TLS certificates
+- **Deployment**: Vercel (Serverless functions)
+- **Payment API**: Swish Production API (cpc.getswish.net)
+- **Security**: TLS certificate authentication, environment variables
 
 ## 📋 Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v18 or higher)
 - npm or yarn
-- Swish merchant account and certificates
-- HTTPS domain for production callbacks
+- Swish merchant account and production certificates
+- Vercel account (for deployment)
+- GitHub repository (for auto-deployment)
 
-## 🛠️ Installation
+## 🛠️ Quick Start
 
-### 1. Install Backend Dependencies
+### 1. Clone Repository
 
 ```bash
-npm install
+git clone https://github.com/shamroz73/my-app.git
+cd my-app
 ```
 
-### 2. Install Frontend Dependencies
+### 2. Install Dependencies
 
 ```bash
+# Install backend dependencies
+npm install
+
+# Install frontend dependencies
 cd client
 npm install
 cd ..
 ```
 
-### 3. Environment Configuration
+### 3. Environment Setup
 
-Your `.env` file should contain:
+Copy the example environment file:
+
+```bash
+cp .env.example .env
+```
+
+Update `.env` with your configuration:
 
 ```env
+# Local Development Environment Variables
 PORT=3000
 
-# Swish Configuration
-SWISH_PAYEE_ALIAS=1232475101
-SWISH_CALLBACK_URL=https://yourdomain.com/swish-callback
+SWISH_PAYEE_ALIAS=your_payee_alias
 SWISH_API_URL=https://cpc.getswish.net
 
-# Certificate Paths
-SWISH_CERT_PATH=certs/swish_certificate_202507071452.pem
-SWISH_KEY_PATH=certs/client_tls_private_key.pem
+# Local development callback URL
+SWISH_CALLBACK_URL=http://localhost:3000/api/swish/callback
+
+# Certificate file paths for local development
+SWISH_CERT_PATH=certs/your_certificate.pem
+SWISH_KEY_PATH=certs/your_private_key.pem
 SWISH_TLS_PATH=certs/SwishCAs.pem
 ```
 
-## 🏃‍♂️ Running the Application
+### 4. Add Certificates
 
-### Development Mode
+Place your Swish certificates in the `certs/` directory:
+- Production certificate (`swish_certificate_*.pem`)
+- Private key (`client_tls_private_key.pem`)
+- Swish CA certificates (`SwishCAs.pem`)
 
-1. **Start the backend server:**
+### 5. Run Locally
 
-   ```bash
-   npm start
-   ```
+```bash
+# Development mode (hot reload)
+npm run dev
 
-   Server runs on http://localhost:3000
+# Production mode
+npm start
+```
 
-2. **Start the React development server (in a new terminal):**
-   ```bash
-   cd client
-   npm start
-   ```
-   Frontend runs on http://localhost:3001
+## 🌐 Production Deployment
 
-### Production Mode
+### Automatic Deployment (Recommended)
 
-1. **Build the React app:**
+The repository is connected to Vercel for automatic deployments:
 
-   ```bash
-   cd client
-   npm run build
-   cd ..
-   ```
+1. **Push to GitHub**: Any commit to `main` branch triggers auto-deployment
+2. **Environment Variables**: Pre-configured in Vercel dashboard
+3. **Live URL**: Updates automatically with each deployment
 
-2. **Start the production server:**
-   ```bash
-   npm start
-   ```
-   Complete app runs on http://localhost:3000
+### Manual Deployment
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Login to Vercel
+vercel login
+
+# Deploy to production
+vercel --prod
+```
+
+## 🔧 Environment Configuration
+
+### Local Development
+- Uses certificate files directly from `certs/` folder
+- Callback URL: `http://localhost:3000/api/swish/callback`
+- Certificates loaded from file system
+
+### Production (Vercel)
+- Uses base64 encoded certificates from environment variables
+- Callback URL: `https://your-app.vercel.app/api/swish/callback`
+- Certificates loaded from `SWISH_CERT_BASE64` and `SWISH_KEY_BASE64`
+
+### Setting up Vercel Environment Variables
+
+Use the provided setup script:
+
+```bash
+# Make script executable
+chmod +x setup-vercel-env.sh
+
+# Run setup script
+./setup-vercel-env.sh
+```
+
+Or set manually via CLI:
+
+```bash
+vercel env add SWISH_PAYEE_ALIAS production
+vercel env add SWISH_API_URL production
+vercel env add SWISH_CALLBACK_URL production
+vercel env add SWISH_CERT_BASE64 production
+vercel env add SWISH_KEY_BASE64 production
+```
 
 ## 🔄 Payment Flow
 
-1. **Payment Initiation**: User enters phone number and amount
-2. **API Request**: Frontend calls `/api/create-swish-payment`
-3. **Swish Integration**: Backend creates payment request with Swish
-4. **Status Monitoring**: Frontend polls payment status
-5. **User Action**: User approves payment in Swish app
-6. **Callback Processing**: Swish sends callback to backend
-7. **Status Update**: Frontend displays final payment result
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant Swish
+    participant SwishApp as Swish App
+
+    User->>Frontend: Enter phone & amount
+    Frontend->>Backend: POST /api/create-swish-payment
+    Backend->>Swish: Create payment request
+    Swish-->>Backend: Payment token & instructions
+    Backend-->>Frontend: Payment details
+    Frontend-->>User: Show "Open Swish App"
+    
+    User->>SwishApp: Approve/Decline payment
+    SwishApp->>Swish: Payment decision
+    Swish->>Backend: Callback with status
+    Backend->>Frontend: Real-time status update
+    Frontend-->>User: Success/Failure message
+```
 
 ## 📱 API Endpoints
 
-### POST `/api/create-swish-payment`
+### POST `/api/swish/create-payment`
 
 Create a new Swish payment request.
 
-**Request Body:**
-
+**Request:**
 ```json
 {
   "phoneNumber": "46761581756",
@@ -113,7 +193,6 @@ Create a new Swish payment request.
 ```
 
 **Response:**
-
 ```json
 {
   "token": "11A86BE70EA346E4B1C39C874173F088",
@@ -122,12 +201,11 @@ Create a new Swish payment request.
 }
 ```
 
-### GET `/api/payment-status/:token`
+### GET `/api/swish/payment-status/:token`
 
-Get the current status of a payment.
+Get current payment status.
 
 **Response:**
-
 ```json
 {
   "token": "11A86BE70EA346E4B1C39C874173F088",
@@ -139,19 +217,93 @@ Get the current status of a payment.
 }
 ```
 
+### POST `/api/swish/callback`
+
+Webhook endpoint for Swish payment status updates (handled automatically).
+
+## 🧪 Testing
+
+### Manual Testing Endpoints
+
+The backend includes manual testing endpoints for development:
+
+```bash
+# Test payment creation
+curl -X POST http://localhost:3000/api/test/create-payment \
+  -H "Content-Type: application/json" \
+  -d '{"phoneNumber":"46761581756","amount":"100.00"}'
+
+# Test payment status
+curl http://localhost:3000/api/test/payment-status/YOUR_TOKEN
+```
+
+### Production Testing
+
+1. Visit the live application
+2. Enter a valid Swedish phone number (+46XXXXXXXXX)
+3. Enter payment amount
+4. Click "Create Payment"
+5. Open Swish app to approve/decline
+6. Status updates automatically in real-time
+
 ## 🎨 Frontend Components
 
-- **PaymentForm**: Main payment form with validation
-- **PaymentStatus**: Real-time status monitoring with polling
-- **CallbackHandler**: Processes Swish callback responses
-- **App**: Main application router and state management
-  ```bash
-  npm run dev
-  ```
+- **`App.js`**: Main application router (refactored for clean state management)
+- **`PaymentForm.js`**: Payment form with validation and submission
+- **`PaymentStatus.js`**: Real-time status display with automatic updates
+- **`CallbackHandler.js`**: Processes Swish callback responses
 
-3. Or start normally:
-   ```bash
-   npm start
-   ```
+## 🔒 Security Features
 
-Server will run on `http://localhost:3000/` by default.
+- ✅ TLS certificate authentication with Swish API
+- ✅ Environment-aware certificate loading
+- ✅ Sensitive files excluded from repository
+- ✅ Production secrets managed via Vercel environment variables
+- ✅ Input validation and sanitization
+- ✅ HTTPS-only production endpoints
+
+## 📁 Project Structure
+
+```
+my-app/
+├── client/                 # React frontend
+│   ├── src/
+│   │   ├── components/     # React components
+│   │   └── App.js         # Main app component
+│   └── build/             # Production build (auto-generated)
+├── certs/                 # Swish certificates (not in git)
+├── server.js              # Express backend with Swish integration
+├── vercel.json           # Vercel deployment configuration
+├── .env.example          # Environment variables template
+├── setup-vercel-env.sh   # Automated Vercel setup script
+└── VERCEL_ENV_SETUP.md   # Detailed setup documentation
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+- **Documentation**: See `VERCEL_ENV_SETUP.md` for detailed setup instructions
+- **Issues**: Open an issue on GitHub for bug reports or feature requests
+- **Swish API**: Refer to [Swish Developer Portal](https://developer.swish.nu/) for API documentation
+
+## 🔄 Auto-Deployment Status
+
+✅ **Connected to Vercel**: Automatic deployments enabled  
+✅ **GitHub Integration**: Push to `main` triggers deployment  
+✅ **Environment Variables**: Pre-configured for production  
+✅ **SSL Certificates**: Properly configured for Vercel serverless  
+
+---
+
+**Made with ❤️ for Swedish payment integration**
