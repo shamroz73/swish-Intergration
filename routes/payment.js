@@ -61,15 +61,23 @@ router.post("/create-swish-payment", async (req, res) => {
     });
 
     // Make request to Swish API
+    console.log(`🚀 Creating Swish payment with UUID: ${uuid}`);
     const response = await makeSwishApiRequest(
       uuid,
       payload,
       req.app.locals.agent
     );
 
+    console.log(`📥 Swish API response status: ${response.status}`);
+    console.log(`📥 Swish API response headers:`, response.headers);
+    console.log(`📥 Swish API response data:`, response.data);
+    
+    const swishPaymentId = response.data?.id || uuid;
+    console.log(`🔗 Using Swish payment ID: ${swishPaymentId} (UUID: ${uuid})`);
+
     // Store payment data for tracking
     storePaymentData(uuid, {
-      paymentRequestToken: response.data.id || uuid,
+      paymentRequestToken: swishPaymentId,
       phoneNumber: formattedPhone,
       amount: amount.toString(),
       paymentReference,
@@ -77,7 +85,7 @@ router.post("/create-swish-payment", async (req, res) => {
 
     res.status(200).json({
       token: uuid,
-      paymentRequestToken: response.data.id || uuid,
+      paymentRequestToken: swishPaymentId,
       status: "created",
     });
   } catch (error) {
@@ -128,6 +136,42 @@ router.get("/debug/payments", (req, res) => {
     res.json(allPayments);
   } catch (error) {
     console.error("Error in debug endpoint:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * Test callback functionality
+ * POST /api/test/callback/:token
+ */
+router.post("/test/callback/:token", (req, res) => {
+  const { token } = req.params;
+  const { status = "PAID" } = req.body;
+  
+  try {
+    // Get the payment data to find the Swish payment ID
+    const paymentData = getPaymentData(token);
+    if (!paymentData) {
+      return res.status(404).json({ error: "Payment not found" });
+    }
+
+    console.log(`🧪 Testing callback for token: ${token}, swishId: ${paymentData.paymentRequestToken}`);
+    
+    // Simulate a callback by updating the payment status
+    const updated = updatePaymentFromCallback(paymentData.paymentRequestToken, { 
+      status, 
+      paymentReference: paymentData.payeePaymentReference 
+    });
+
+    if (updated) {
+      console.log("✅ Test callback processed successfully");
+      res.json({ message: "Test callback processed successfully", status });
+    } else {
+      console.log("❌ Test callback failed - payment not found");
+      res.status(500).json({ error: "Test callback failed" });
+    }
+  } catch (error) {
+    console.error("Error in test callback:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

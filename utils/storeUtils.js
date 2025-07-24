@@ -57,11 +57,13 @@ function updatePaymentFromCallback(id, callbackData) {
       }
 
       paymentStore.set(token, paymentData);
-      console.log(`✅ Updated payment ${token} (Swish ID: ${id}) with status: ${status}`);
+      console.log(
+        `✅ Updated payment ${token} (Swish ID: ${id}) with status: ${status}`
+      );
       return true;
     }
   }
-  
+
   console.log(`❌ Payment not found for Swish ID: ${id}`);
   return false;
 }
