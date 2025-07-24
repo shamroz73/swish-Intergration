@@ -164,6 +164,30 @@ if (cert && key) {
   console.warn("⚠️ No HTTPS agent created - Swish API calls will fail");
 }
 
+// Simple diagnostic endpoint
+app.get("/api/cert-status", (req, res) => {
+  const status = {
+    hasRawPem: !!(process.env.SWISH_CERT && process.env.SWISH_KEY),
+    hasBase64: !!(process.env.SWISH_CERT_BASE64 && process.env.SWISH_KEY_BASE64),
+    isVercel: !!process.env.VERCEL,
+    certSource: null,
+    certPreview: null,
+    keyPreview: null
+  };
+  
+  if (status.hasRawPem) {
+    status.certSource = "raw-pem";
+    status.certPreview = process.env.SWISH_CERT.substring(0, 100);
+    status.keyPreview = process.env.SWISH_KEY.substring(0, 100);
+  } else if (status.hasBase64) {
+    status.certSource = "base64";
+    status.certPreview = process.env.SWISH_CERT_BASE64.substring(0, 100);
+    status.keyPreview = process.env.SWISH_KEY_BASE64.substring(0, 100);
+  }
+  
+  res.json(status);
+});
+
 // Simple endpoint to debug environment variables
 app.get("/api/debug-env", (req, res) => {
   try {
