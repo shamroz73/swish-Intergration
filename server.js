@@ -51,9 +51,21 @@ try {
     }
     
     console.log("🔍 Decoding certificates from base64...");
-    // Decode base64 to string (PEM format)
-    cert = Buffer.from(process.env.SWISH_CERT_BASE64, "base64").toString("utf8");
-    key = Buffer.from(process.env.SWISH_KEY_BASE64, "base64").toString("utf8");
+    // Decode base64 to string (PEM format) and ensure proper line endings
+    const rawCert = Buffer.from(process.env.SWISH_CERT_BASE64, "base64").toString("utf8");
+    const rawKey = Buffer.from(process.env.SWISH_KEY_BASE64, "base64").toString("utf8");
+    
+    // Ensure proper PEM formatting with correct line endings
+    cert = rawCert.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    key = rawKey.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    
+    // Validate PEM format
+    if (!cert.includes('-----BEGIN CERTIFICATE-----') || !cert.includes('-----END CERTIFICATE-----')) {
+      throw new Error('Invalid certificate format - missing PEM headers');
+    }
+    if (!key.includes('-----BEGIN PRIVATE KEY-----') || !key.includes('-----END PRIVATE KEY-----')) {
+      throw new Error('Invalid private key format - missing PEM headers');
+    }
     
     console.log("📜 Certificate loaded successfully:", {
       certSize: cert.length,
@@ -62,6 +74,8 @@ try {
       keyValid: key.length > 0,
       certStartsWith: cert.substring(0, 50),
       keyStartsWith: key.substring(0, 50),
+      certHasPemHeaders: cert.includes('-----BEGIN CERTIFICATE-----'),
+      keyHasPemHeaders: key.includes('-----BEGIN PRIVATE KEY-----'),
     });
   } else {
     console.log("💻 Running locally - loading certificates from files");
@@ -104,12 +118,26 @@ try {
 // Create HTTPS agent for Swish API communication
 let agent = null;
 if (cert && key) {
-  agent = new https.Agent({
-    cert,
-    key,
-    rejectUnauthorized: true,
-  });
-  console.log("✅ HTTPS agent created successfully for Swish API");
+  try {
+    agent = new https.Agent({
+      cert: cert,
+      key: key,
+      rejectUnauthorized: true,
+      // Add additional options for better compatibility
+      secureProtocol: 'TLSv1_2_method',
+      honorCipherOrder: true,
+    });
+    console.log("✅ HTTPS agent created successfully for Swish API");
+  } catch (agentError) {
+    console.error("🚨 Failed to create HTTPS agent:", {
+      error: agentError.message,
+      certType: typeof cert,
+      keyType: typeof key,
+      certLength: cert?.length || 0,
+      keyLength: key?.length || 0,
+    });
+    agent = null;
+  }
 } else {
   console.warn("⚠️ No HTTPS agent created - Swish API calls will fail");
 }
