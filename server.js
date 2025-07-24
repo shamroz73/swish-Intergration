@@ -36,7 +36,9 @@ if (agent) {
   console.log("✅ Swish HTTPS agent created successfully");
 } else {
   console.log("⚠️ No HTTPS agent created - Swish API calls will fail");
-  console.log("⚠️ Starting server without Swish certificates - API will be disabled");
+  console.log(
+    "⚠️ Starting server without Swish certificates - API will be disabled"
+  );
 }
 
 // Root endpoint serves React app

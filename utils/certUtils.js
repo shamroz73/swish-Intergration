@@ -26,7 +26,7 @@ function loadCertificates() {
       SWISH_KEY_BASE64_present: !!process.env.SWISH_KEY_BASE64,
       SWISH_CERT_BASE64_length: process.env.SWISH_CERT_BASE64?.length || 0,
       SWISH_KEY_BASE64_length: process.env.SWISH_KEY_BASE64?.length || 0,
-    }
+    },
   });
 
   // Additional debugging for Vercel
@@ -53,16 +53,25 @@ function loadCertificates() {
     if (process.env.SWISH_CERT_BASE64 && process.env.SWISH_KEY_BASE64) {
       console.log("🔄 Attempting direct load from process.env");
       try {
-        const cert = Buffer.from(process.env.SWISH_CERT_BASE64, "base64").toString("utf8");
-        const key = Buffer.from(process.env.SWISH_KEY_BASE64, "base64").toString("utf8");
-        
+        const cert = Buffer.from(
+          process.env.SWISH_CERT_BASE64,
+          "base64"
+        ).toString("utf8");
+        const key = Buffer.from(
+          process.env.SWISH_KEY_BASE64,
+          "base64"
+        ).toString("utf8");
+
         console.log("✅ Certificates loaded directly from process.env");
         console.log("Certificate starts with:", cert.substring(0, 50) + "...");
         console.log("Key starts with:", key.substring(0, 50) + "...");
-        
+
         return { cert, key };
       } catch (error) {
-        console.error("❌ Error decoding certificates from process.env:", error);
+        console.error(
+          "❌ Error decoding certificates from process.env:",
+          error
+        );
       }
     }
 
@@ -73,7 +82,7 @@ function loadCertificates() {
       error: error.message,
       environment: config.environment,
       isVercel: config.isVercel,
-      note: "This might be a startup timing issue if payment creation works"
+      note: "This might be a startup timing issue if payment creation works",
     });
 
     return { cert: null, key: null };

@@ -8,12 +8,19 @@ const PaymentStatus = () => {
   const [status, setStatus] = useState("pending");
   const [paymentInfo, setPaymentInfo] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState(180); // 3 minutes timeout (more realistic)
+  const [isPolling, setIsPolling] = useState(false); // Track polling state
 
   useEffect(() => {
     if (!token) {
       navigate("/");
       return;
     }
+
+    // Use refs to track intervals so they can be cleared from anywhere
+    let pollInterval = null;
+    let timeout = null;
+    let cancellationTimeout = null;
+    let countdownInterval = null;
 
     const checkPaymentStatus = async () => {
       try {
@@ -22,6 +29,10 @@ const PaymentStatus = () => {
         if (response.data.status === "PAID") {
           setStatus("completed");
           setPaymentInfo(response.data);
+          setIsPolling(false);
+          // Stop polling when payment is completed
+          if (pollInterval) clearInterval(pollInterval);
+          return true; // Indicate polling should stop
         } else if (
           response.data.status === "DECLINED" ||
           response.data.status === "ERROR" ||
@@ -33,21 +44,41 @@ const PaymentStatus = () => {
             setStatus("failed");
           }
           setPaymentInfo(response.data);
+          setIsPolling(false);
+          // Stop polling when payment is finalized
+          if (pollInterval) clearInterval(pollInterval);
+          return true; // Indicate polling should stop
         }
+        return false; // Continue polling
       } catch (error) {
         console.error("Status check failed:", error);
         if (error.response?.status === 404) {
+          console.log("🚫 Payment not found (404) - stopping polling");
           setStatus("cancelled");
+          setIsPolling(false);
+          // Stop polling when payment is not found
+          if (pollInterval) clearInterval(pollInterval);
+          return true; // Indicate polling should stop
         }
+        // For other errors, continue polling (might be temporary network issues)
+        return false;
       }
     };
 
     // Use a counter to track polling phases
     let checkCount = 0;
-    let pollInterval;
 
     const adaptivePolling = async () => {
-      await checkPaymentStatus();
+      const shouldStop = await checkPaymentStatus();
+      
+      // Stop polling if payment is finalized
+      if (shouldStop) {
+        console.log("🛑 Stopping polling - payment finalized or not found");
+        setIsPolling(false);
+        if (pollInterval) clearInterval(pollInterval);
+        return;
+      }
+      
       checkCount++;
 
       // After 30 rapid checks (30 seconds), switch to slower polling
@@ -55,25 +86,43 @@ const PaymentStatus = () => {
         console.log(
           "🔄 Switching from rapid (1s) to normal (3s) polling after 30 seconds"
         );
-        clearInterval(pollInterval);
-        pollInterval = setInterval(checkPaymentStatus, 3000);
+        if (pollInterval) clearInterval(pollInterval);
+        pollInterval = setInterval(async () => {
+          const shouldStop = await checkPaymentStatus();
+          if (shouldStop) {
+            console.log("🛑 Stopping slower polling - payment finalized");
+            setIsPolling(false);
+            if (pollInterval) clearInterval(pollInterval);
+          }
+        }, 3000);
       }
     };
 
-    // Start with rapid polling for first 30 seconds (every 1 second)
-    console.log(
-      "🚀 Starting rapid polling (1 second intervals) for quick cancellation detection"
-    );
-    pollInterval = setInterval(adaptivePolling, 1000);
-
+    // Initial status check
+    const initialCheck = async () => {
+      const shouldStop = await checkPaymentStatus();
+      if (shouldStop) {
+        console.log("🛑 Payment already finalized - no polling needed");
+        return;
+      }
+      
+      // Only start polling if payment is still pending
+      console.log(
+        "🚀 Starting rapid polling (1 second intervals) for quick cancellation detection"
+      );
+      setIsPolling(true);
+      pollInterval = setInterval(adaptivePolling, 1000);
+    };
+    
     // Set up timeout
-    const timeout = setTimeout(() => {
+    timeout = setTimeout(() => {
       setStatus("timeout");
-      clearInterval(pollInterval);
+      setIsPolling(false);
+      if (pollInterval) clearInterval(pollInterval);
     }, 180000); // 3 minutes
 
     // Set up cancellation detection timeout (shorter than backend)
-    const cancellationTimeout = setTimeout(() => {
+    cancellationTimeout = setTimeout(() => {
       // If still CREATED after 60 seconds, likely cancelled
       const checkAndMarkCancelled = async () => {
         try {
@@ -84,7 +133,8 @@ const PaymentStatus = () => {
             );
             setStatus("cancelled");
             setPaymentInfo(response.data);
-            clearInterval(pollInterval);
+            setIsPolling(false);
+            if (pollInterval) clearInterval(pollInterval);
           }
         } catch (error) {
           console.error("Error in frontend cancellation check:", error);
@@ -94,24 +144,25 @@ const PaymentStatus = () => {
     }, 60000); // 1 minute frontend check
 
     // Countdown timer
-    const countdownInterval = setInterval(() => {
+    countdownInterval = setInterval(() => {
       setTimeRemaining((prev) => {
         if (prev <= 1) {
-          clearInterval(countdownInterval);
+          if (countdownInterval) clearInterval(countdownInterval);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-
-    // Initial status check
-    checkPaymentStatus();
+    
+    initialCheck();
 
     return () => {
-      clearInterval(pollInterval);
-      clearTimeout(timeout);
-      clearTimeout(cancellationTimeout);
-      clearInterval(countdownInterval);
+      console.log("🧹 Cleaning up PaymentStatus component - stopping all intervals");
+      setIsPolling(false);
+      if (pollInterval) clearInterval(pollInterval);
+      if (timeout) clearTimeout(timeout);
+      if (cancellationTimeout) clearTimeout(cancellationTimeout);
+      if (countdownInterval) clearInterval(countdownInterval);
     };
   }, [token, navigate]);
 

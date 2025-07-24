@@ -172,9 +172,17 @@ router.get("/payment-status/:token", async (req, res) => {
     console.log(`   - Swish ID: ${paymentData.paymentRequestToken}`);
     console.log(`   - Status: ${paymentData.status}`);
     console.log(`   - Created: ${paymentData.createdAt}`);
-    console.log(`   - Age: ${Math.round(ageInMinutes)} minutes (${Math.round(ageInSeconds)} seconds)`);
+    console.log(
+      `   - Age: ${Math.round(ageInMinutes)} minutes (${Math.round(
+        ageInSeconds
+      )} seconds)`
+    );
     console.log(`   - Payment Reference: ${paymentData.payeePaymentReference}`);
-    console.log(`   - Callback URL configured: ${process.env.SWISH_CALLBACK_URL ? 'YES' : 'NO'}`);
+    console.log(
+      `   - Callback URL configured: ${
+        process.env.SWISH_CALLBACK_URL ? "YES" : "NO"
+      }`
+    );
     if (process.env.SWISH_CALLBACK_URL) {
       console.log(`   - Callback URL: ${process.env.SWISH_CALLBACK_URL}`);
     }
