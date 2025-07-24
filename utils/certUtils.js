@@ -7,6 +7,47 @@ import config from "../config/index.js";
  */
 
 /**
+ * Alternative certificate loading - try multiple approaches
+ * @returns {Object} Certificate and key data
+ */
+function loadCertificatesAlternative() {
+  console.log("🔄 Trying alternative certificate loading methods...");
+  
+  // Method 1: Direct from process.env
+  if (process.env.SWISH_CERT_BASE64 && process.env.SWISH_KEY_BASE64) {
+    console.log("✅ Method 1: Found certificates directly in process.env");
+    try {
+      const cert = Buffer.from(process.env.SWISH_CERT_BASE64, "base64").toString("utf8");
+      const key = Buffer.from(process.env.SWISH_KEY_BASE64, "base64").toString("utf8");
+      
+      console.log("✅ Alternative method: Certificates decoded successfully");
+      console.log("Certificate starts with:", cert.substring(0, 50) + "...");
+      console.log("Key starts with:", key.substring(0, 50) + "...");
+      
+      return { cert, key };
+    } catch (error) {
+      console.error("❌ Alternative method failed:", error);
+    }
+  }
+  
+  // Method 2: Check if variables exist but are undefined/null
+  console.log("🔍 Method 2: Checking variable existence...");
+  console.log("SWISH_CERT_BASE64 type:", typeof process.env.SWISH_CERT_BASE64);
+  console.log("SWISH_KEY_BASE64 type:", typeof process.env.SWISH_KEY_BASE64);
+  console.log("SWISH_CERT_BASE64 value:", process.env.SWISH_CERT_BASE64 ? "HAS_VALUE" : "NO_VALUE");
+  console.log("SWISH_KEY_BASE64 value:", process.env.SWISH_KEY_BASE64 ? "HAS_VALUE" : "NO_VALUE");
+  
+  // Method 3: List all environment variables that start with SWISH
+  console.log("🔍 Method 3: All SWISH environment variables:");
+  const swishVars = Object.keys(process.env).filter(key => key.startsWith('SWISH'));
+  swishVars.forEach(key => {
+    console.log(`  ${key}: ${process.env[key] ? 'SET' : 'NOT_SET'}`);
+  });
+  
+  return { cert: null, key: null };
+}
+
+/**
  * Load certificates from environment variables (Base64 format)
  * @returns {Object} Certificate and key data
  */
@@ -48,6 +89,13 @@ function loadCertificates() {
       SWISH_KEY_BASE64: !!process.env.SWISH_KEY_BASE64,
       VERCEL: !!process.env.VERCEL,
     });
+
+    // Try alternative loading method
+    console.log("🔄 Attempting alternative certificate loading...");
+    const altResult = loadCertificatesAlternative();
+    if (altResult.cert && altResult.key) {
+      return altResult;
+    }
 
     // Try to load directly from process.env as fallback
     if (process.env.SWISH_CERT_BASE64 && process.env.SWISH_KEY_BASE64) {
@@ -132,4 +180,4 @@ function createHttpsAgent(cert, key) {
   }
 }
 
-export { loadCertificates, createHttpsAgent };
+export { loadCertificates, loadCertificatesAlternative, createHttpsAgent };

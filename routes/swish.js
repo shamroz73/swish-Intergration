@@ -96,6 +96,41 @@ router.get("/check-status/:paymentId", async (req, res) => {
 });
 
 /**
+ * Raw environment debug - show actual env var values (be careful in production!)
+ * GET /api/swish/raw-env-debug
+ */
+router.get("/raw-env-debug", (req, res) => {
+  console.log("🔬 Raw environment debug check requested");
+  
+  const rawEnvDebug = {
+    timestamp: new Date().toISOString(),
+    note: "⚠️ This endpoint shows sensitive data - remove after debugging",
+    environment: process.env.NODE_ENV,
+    vercel: process.env.VERCEL,
+    rawEnvVars: {
+      SWISH_API_URL: process.env.SWISH_API_URL ? "SET" : "NOT_SET",
+      SWISH_PAYEE_ALIAS: process.env.SWISH_PAYEE_ALIAS ? "SET" : "NOT_SET", 
+      SWISH_CALLBACK_URL: process.env.SWISH_CALLBACK_URL ? "SET" : "NOT_SET",
+      SWISH_CERT_BASE64: process.env.SWISH_CERT_BASE64 ? "SET" : "NOT_SET",
+      SWISH_KEY_BASE64: process.env.SWISH_KEY_BASE64 ? "SET" : "NOT_SET",
+    },
+    lengths: {
+      SWISH_CERT_BASE64: process.env.SWISH_CERT_BASE64?.length || 0,
+      SWISH_KEY_BASE64: process.env.SWISH_KEY_BASE64?.length || 0,
+    },
+    // Show first 50 chars to verify format (be careful!)
+    preview: {
+      cert: process.env.SWISH_CERT_BASE64?.substring(0, 50) || "NOT_FOUND",
+      key: process.env.SWISH_KEY_BASE64?.substring(0, 50) || "NOT_FOUND",
+    }
+  };
+  
+  console.log("🔬 Raw environment debug:", JSON.stringify(rawEnvDebug, null, 2));
+  
+  res.json(rawEnvDebug);
+});
+
+/**
  * Environment debug endpoint - real-time environment check
  * GET /api/swish/env-debug
  */
