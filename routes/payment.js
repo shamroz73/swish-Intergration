@@ -106,12 +106,47 @@ router.get("/payment-status/:token", async (req, res) => {
       return res.status(404).json({ error: "Payment not found" });
     }
 
-    // Note: Swish API doesn't support GET requests for payment status checking
-    // Status updates should come through callbacks (/api/swish/callback)
-    // For now, we return the cached payment data
+    // Check if payment is old and still CREATED (likely cancelled)
+    const createdAt = new Date(paymentData.createdAt);
+    const now = new Date();
+    const ageInMinutes = (now - createdAt) / (1000 * 60);
+    
+    // If payment is older than 10 minutes and still CREATED, mark as CANCELLED
+    if (paymentData.status === "CREATED" && ageInMinutes > 10) {
+      console.log(`⏰ Payment ${token} is older than 10 minutes and still CREATED - marking as CANCELLED`);
+      
+      // Update payment status to CANCELLED
+      const updated = updatePaymentFromCallback(paymentData.paymentRequestToken, { 
+        status: "CANCELLED", 
+        paymentReference: paymentData.payeePaymentReference 
+      });
+      
+      if (updated) {
+        const updatedData = getPaymentData(token);
+        console.log(`✅ Payment ${token} automatically marked as CANCELLED due to timeout`);
+        return res.json(updatedData);
+      }
+    }
+    
+    // Check if payment is older than 5 minutes and still CREATED (likely cancelled)
+    if (paymentData.status === "CREATED" && ageInMinutes > 5) {
+      console.log(`⚠️ Payment ${token} is older than 5 minutes and still CREATED - likely cancelled by user`);
+      
+      // Update payment status to CANCELLED
+      const updated = updatePaymentFromCallback(paymentData.paymentRequestToken, { 
+        status: "CANCELLED", 
+        paymentReference: paymentData.payeePaymentReference 
+      });
+      
+      if (updated) {
+        const updatedData = getPaymentData(token);
+        console.log(`✅ Payment ${token} automatically marked as CANCELLED after 5 minutes`);
+        return res.json(updatedData);
+      }
+    }
 
     console.log(
-      `Returning cached payment data for token: ${token}, status: ${paymentData.status}, swishId: ${paymentData.paymentRequestToken}`
+      `Returning cached payment data for token: ${token}, status: ${paymentData.status}, swishId: ${paymentData.paymentRequestToken}, age: ${Math.round(ageInMinutes)} minutes`
     );
 
     // Return cached payment data
@@ -172,6 +207,53 @@ router.post("/test/callback/:token", (req, res) => {
     }
   } catch (error) {
     console.error("Error in test callback:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * Cancel payment manually
+ * POST /api/cancel-payment/:token
+ */
+router.post("/cancel-payment/:token", (req, res) => {
+  const { token } = req.params;
+  
+  try {
+    // Get the payment data
+    const paymentData = getPaymentData(token);
+    if (!paymentData) {
+      return res.status(404).json({ error: "Payment not found" });
+    }
+
+    // Only allow cancellation if payment is still CREATED
+    if (paymentData.status !== "CREATED") {
+      return res.status(400).json({ 
+        error: "Payment cannot be cancelled", 
+        currentStatus: paymentData.status 
+      });
+    }
+
+    console.log(`🚫 Manual cancellation requested for token: ${token}`);
+    
+    // Update payment status to CANCELLED
+    const updated = updatePaymentFromCallback(paymentData.paymentRequestToken, { 
+      status: "CANCELLED", 
+      paymentReference: paymentData.payeePaymentReference 
+    });
+
+    if (updated) {
+      const updatedData = getPaymentData(token);
+      console.log("✅ Payment manually cancelled successfully");
+      res.json({ 
+        message: "Payment cancelled successfully", 
+        payment: updatedData 
+      });
+    } else {
+      console.log("❌ Manual cancellation failed");
+      res.status(500).json({ error: "Failed to cancel payment" });
+    }
+  } catch (error) {
+    console.error("Error in manual cancellation:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

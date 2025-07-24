@@ -82,8 +82,18 @@ const PaymentStatus = () => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
-  const handleCancelPayment = () => {
-    setStatus("cancelled");
+  const handleCancelPayment = async () => {
+    try {
+      console.log(`🚫 Cancelling payment for token: ${token}`);
+      const response = await axios.post(`/api/cancel-payment/${token}`);
+      console.log("✅ Payment cancelled:", response.data);
+      setStatus("cancelled");
+      setPaymentInfo(response.data.payment);
+    } catch (error) {
+      console.error("❌ Failed to cancel payment:", error);
+      // If API call fails, still mark as cancelled locally
+      setStatus("cancelled");
+    }
   };
 
   const handleNewPayment = () => {
@@ -99,7 +109,7 @@ const PaymentStatus = () => {
   const handleManualSuccess = async () => {
     try {
       console.log(`🧪 Testing: Simulating PAID status for token: ${token}`);
-      const response = await axios.post(`/api/manual-status/${token}`, {
+      const response = await axios.post(`/api/test/callback/${token}`, {
         status: "PAID",
       });
       console.log("✅ Manual success response:", response.data);
@@ -111,7 +121,7 @@ const PaymentStatus = () => {
   const handleManualFailure = async () => {
     try {
       console.log(`🧪 Testing: Simulating DECLINED status for token: ${token}`);
-      const response = await axios.post(`/api/manual-status/${token}`, {
+      const response = await axios.post(`/api/test/callback/${token}`, {
         status: "DECLINED",
       });
       console.log("❌ Manual failure response:", response.data);
