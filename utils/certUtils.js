@@ -7,46 +7,41 @@ import config from "../config/index.js";
  */
 
 /**
- * Load certificates using base64 environment variables
- * @returns {Object} - Certificate and key objects
+ * Load certificates from environment variables (Base64 format)
+ * @returns {Object} Certificate and key data
  */
 function loadCertificates() {
-  try {
-    // Check if base64 environment variables are available
-    if (!config.certificates.certBase64 || !config.certificates.keyBase64) {
-      console.warn("⚠️ Swish certificates not configured - Swish payments will be disabled");
-      return { cert: null, key: null };
-    }
+  console.log("🔧 Loading certificates...");
+  console.log("Environment check:", {
+    isVercel: config.isVercel,
+    hasCallbackUrl: !!config.swish.callbackUrl,
+    hasPayeeAlias: !!config.swish.payeeAlias,
+    hasApiUrl: !!config.swish.apiUrl,
+    hasCertBase64: !!config.certificates.certBase64,
+    hasKeyBase64: !!config.certificates.keyBase64,
+    certBase64Length: config.certificates.certBase64?.length || 0,
+    keyBase64Length: config.certificates.keyBase64?.length || 0,
+  });
 
-    // Decode base64 to PEM format
+  if (!config.certificates.certBase64 || !config.certificates.keyBase64) {
+    console.error("❌ Missing certificate environment variables");
+    console.log("SWISH_CERT_BASE64:", config.certificates.certBase64 ? "Present" : "Missing");
+    console.log("SWISH_KEY_BASE64:", config.certificates.keyBase64 ? "Present" : "Missing");
+    return { cert: null, key: null };
+  }
+
+  try {
+    // Decode Base64 certificates
     const cert = Buffer.from(config.certificates.certBase64, "base64").toString("utf8");
     const key = Buffer.from(config.certificates.keyBase64, "base64").toString("utf8");
 
-    // Validate PEM format
-    if (!cert.includes("-----BEGIN CERTIFICATE-----") || !cert.includes("-----END CERTIFICATE-----")) {
-      throw new Error("Invalid certificate format - missing PEM headers");
-    }
-    
-    if (!key.includes("-----BEGIN PRIVATE KEY-----") || !key.includes("-----END PRIVATE KEY-----")) {
-      throw new Error("Invalid private key format - missing PEM headers");
-    }
+    console.log("✅ Certificates loaded successfully");
+    console.log("Certificate starts with:", cert.substring(0, 50) + "...");
+    console.log("Key starts with:", key.substring(0, 50) + "...");
 
-    console.log("✅ Swish certificates loaded successfully");
     return { cert, key };
-    
   } catch (error) {
-    console.error("❌ Error loading Swish certificates:", error.message);
-    
-    // In production, gracefully disable Swish functionality
-    if (config.isProduction) {
-      console.warn("🔒 Swish payments disabled in production due to certificate error");
-      return { cert: null, key: null };
-    }
-    
-    // In development, provide helpful error message but don't crash
-    console.error("💡 To fix this:");
-    console.error("1. Run: npm run generate-certs");
-    console.error("2. Or manually set SWISH_CERT_BASE64 and SWISH_KEY_BASE64 environment variables");
+    console.error("❌ Error decoding certificates:", error);
     return { cert: null, key: null };
   }
 }

@@ -97,56 +97,11 @@ router.get("/payment-status/:token", async (req, res) => {
       return res.status(404).json({ error: "Payment not found" });
     }
 
-    // If payment is still in CREATED status, check with Swish API for updates
-    if (paymentData.status === "CREATED" && req.app.locals.agent) {
-      try {
-        console.log(`Checking Swish status for payment: ${paymentData.paymentRequestToken}`);
-        const swishStatus = await checkSwishPaymentStatus(
-          paymentData.paymentRequestToken,
-          req.app.locals.agent
-        );
-
-        console.log(`Swish API response:`, swishStatus);
-
-        if (swishStatus.success) {
-          console.log(`Payment status from Swish: ${swishStatus.data.status}`);
-          // Update local payment data with Swish status
-          const updatedData = {
-            ...paymentData,
-            status: swishStatus.data.status,
-            updatedAt: new Date().toISOString(),
-          };
-
-          // Store the updated status
-          updatePaymentFromCallback(token, {
-            status: swishStatus.data.status,
-            paymentReference: swishStatus.data.paymentReference,
-          });
-
-          return res.json(updatedData);
-        } else if (swishStatus.status === "NOT_FOUND") {
-          console.log(`Payment not found in Swish API, marking as CANCELLED`);
-          // Payment request not found in Swish - likely cancelled or expired
-          const updatedData = {
-            ...paymentData,
-            status: "CANCELLED",
-            updatedAt: new Date().toISOString(),
-          };
-
-          updatePaymentFromCallback(token, {
-            status: "CANCELLED",
-            paymentReference: paymentData.payeePaymentReference,
-          });
-
-          return res.json(updatedData);
-        } else {
-          console.log(`Swish check failed, continuing with cached data:`, swishStatus);
-        }
-      } catch (error) {
-        console.error("Error checking Swish payment status:", error);
-        // Continue with cached data if Swish API check fails
-      }
-    }
+    // Note: Swish API doesn't support GET requests for payment status checking
+    // Status updates should come through callbacks (/api/swish/callback)
+    // For now, we return the cached payment data
+    
+    console.log(`Returning cached payment data for token: ${token}, status: ${paymentData.status}`);
 
     // Return cached payment data
     res.json(paymentData);
