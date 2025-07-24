@@ -33,14 +33,20 @@ async function makeSwishApiRequest(uuid, payload, agent) {
  */
 async function checkSwishPaymentStatus(paymentRequestToken, agent) {
   const apiUrl = `${config.swish.apiUrl}/swish-cpcapi/api/v2/paymentrequests`;
+  const fullUrl = `${apiUrl}/${paymentRequestToken}`;
+  
+  console.log(`Checking payment status at: ${fullUrl}`);
 
   try {
-    const response = await axios.get(`${apiUrl}/${paymentRequestToken}`, {
+    const response = await axios.get(fullUrl, {
       httpsAgent: agent,
       headers: {
         "Content-Type": "application/json",
       },
     });
+
+    console.log(`Swish API response status: ${response.status}`);
+    console.log(`Swish API response data:`, response.data);
 
     return {
       success: true,
@@ -48,6 +54,11 @@ async function checkSwishPaymentStatus(paymentRequestToken, agent) {
       status: response.data.status,
     };
   } catch (error) {
+    console.log(`Swish API error: ${error.response?.status} - ${error.message}`);
+    if (error.response?.data) {
+      console.log(`Swish API error details:`, error.response.data);
+    }
+    
     // If payment request is not found, it might have been cancelled or expired
     if (error.response?.status === 404) {
       return {

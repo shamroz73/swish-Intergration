@@ -1,7 +1,5 @@
 import express from "express";
-import {
-  updatePaymentFromCallback,
-} from "../utils/index.js";
+import { updatePaymentFromCallback } from "../utils/index.js";
 
 const router = express.Router();
 

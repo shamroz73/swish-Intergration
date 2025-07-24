@@ -100,12 +100,16 @@ router.get("/payment-status/:token", async (req, res) => {
     // If payment is still in CREATED status, check with Swish API for updates
     if (paymentData.status === "CREATED" && req.app.locals.agent) {
       try {
+        console.log(`Checking Swish status for payment: ${paymentData.paymentRequestToken}`);
         const swishStatus = await checkSwishPaymentStatus(
           paymentData.paymentRequestToken,
           req.app.locals.agent
         );
 
+        console.log(`Swish API response:`, swishStatus);
+
         if (swishStatus.success) {
+          console.log(`Payment status from Swish: ${swishStatus.data.status}`);
           // Update local payment data with Swish status
           const updatedData = {
             ...paymentData,
@@ -121,6 +125,7 @@ router.get("/payment-status/:token", async (req, res) => {
 
           return res.json(updatedData);
         } else if (swishStatus.status === "NOT_FOUND") {
+          console.log(`Payment not found in Swish API, marking as CANCELLED`);
           // Payment request not found in Swish - likely cancelled or expired
           const updatedData = {
             ...paymentData,
@@ -134,6 +139,8 @@ router.get("/payment-status/:token", async (req, res) => {
           });
 
           return res.json(updatedData);
+        } else {
+          console.log(`Swish check failed, continuing with cached data:`, swishStatus);
         }
       } catch (error) {
         console.error("Error checking Swish payment status:", error);
@@ -145,7 +152,7 @@ router.get("/payment-status/:token", async (req, res) => {
     res.json(paymentData);
   } catch (error) {
     console.error("Error getting payment status:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Internal server error",
       timestamp: new Date().toISOString(),
     });
