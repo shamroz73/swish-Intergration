@@ -45,12 +45,19 @@ function createPaymentPayload({ paymentReference, formattedPhone, amount }) {
   // Only add callbackUrl if it's set
   if (config.swish.callbackUrl) {
     payload.callbackUrl = config.swish.callbackUrl;
-    console.log(`📞 Setting callback URL in payload: ${config.swish.callbackUrl}`);
+    console.log(
+      `📞 Setting callback URL in payload: ${config.swish.callbackUrl}`
+    );
   } else {
-    console.log("⚠️  No callback URL configured - callbacks will not be received!");
+    console.log(
+      "⚠️  No callback URL configured - callbacks will not be received!"
+    );
   }
 
-  console.log("📋 Final Swish payment payload:", JSON.stringify(payload, null, 2));
+  console.log(
+    "📋 Final Swish payment payload:",
+    JSON.stringify(payload, null, 2)
+  );
   return payload;
 }
 

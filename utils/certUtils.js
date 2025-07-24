@@ -11,8 +11,7 @@ import config from "../config/index.js";
  * @returns {Object} Certificate and key data
  */
 function loadCertificates() {
-  console.log("🔧 Loading certificates...");
-  console.log("Environment check:", {
+  console.log("🔧 Environment check:", {
     isVercel: config.isVercel,
     hasCallbackUrl: !!config.swish.callbackUrl,
     hasPayeeAlias: !!config.swish.payeeAlias,
@@ -23,16 +22,32 @@ function loadCertificates() {
     keyBase64Length: config.certificates.keyBase64?.length || 0,
   });
 
+  // Additional debugging for Vercel
+  if (config.isVercel) {
+    console.log("🌟 Running on Vercel - loading certificates from environment variables");
+    console.log("Environment variables status:", {
+      SWISH_CERT_BASE64: !!process.env.SWISH_CERT_BASE64,
+      SWISH_KEY_BASE64: !!process.env.SWISH_KEY_BASE64,
+      VERCEL: !!process.env.VERCEL,
+    });
+  }
+
   if (!config.certificates.certBase64 || !config.certificates.keyBase64) {
-    console.error("❌ Missing certificate environment variables");
-    console.log(
-      "SWISH_CERT_BASE64:",
-      config.certificates.certBase64 ? "Present" : "Missing"
-    );
-    console.log(
-      "SWISH_KEY_BASE64:",
-      config.certificates.keyBase64 ? "Present" : "Missing"
-    );
+    console.log("❌ Missing certificate environment variables on Vercel");
+    console.log("Environment variables status:", {
+      SWISH_CERT_BASE64: !!process.env.SWISH_CERT_BASE64,
+      SWISH_KEY_BASE64: !!process.env.SWISH_KEY_BASE64,
+      VERCEL: !!process.env.VERCEL,
+    });
+    
+    const error = new Error("Missing SWISH_CERT_BASE64 or SWISH_KEY_BASE64 environment variables");
+    console.log("🚨 CRITICAL ERROR: Failed to load certificates", {
+      error: error.message,
+      stack: error.stack,
+      environment: config.environment,
+      isVercel: config.isVercel,
+    });
+    
     return { cert: null, key: null };
   }
 

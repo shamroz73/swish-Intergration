@@ -55,6 +55,25 @@ const PaymentStatus = () => {
       clearInterval(pollInterval);
     }, 180000); // 3 minutes
 
+    // Set up cancellation detection timeout (shorter than backend)
+    const cancellationTimeout = setTimeout(() => {
+      // If still CREATED after 2 minutes, likely cancelled
+      const checkAndMarkCancelled = async () => {
+        try {
+          const response = await axios.get(`/api/payment-status/${token}`);
+          if (response.data.status === "CREATED") {
+            console.log("⏰ Payment still CREATED after 2 minutes - likely cancelled");
+            setStatus("cancelled");
+            setPaymentInfo(response.data);
+            clearInterval(pollInterval);
+          }
+        } catch (error) {
+          console.error("Error in cancellation check:", error);
+        }
+      };
+      checkAndMarkCancelled();
+    }, 120000); // 2 minutes
+
     // Countdown timer
     const countdownInterval = setInterval(() => {
       setTimeRemaining((prev) => {
@@ -72,6 +91,7 @@ const PaymentStatus = () => {
     return () => {
       clearInterval(pollInterval);
       clearTimeout(timeout);
+      clearTimeout(cancellationTimeout);
       clearInterval(countdownInterval);
     };
   }, [token, navigate]);

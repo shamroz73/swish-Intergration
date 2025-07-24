@@ -18,6 +18,22 @@ router.get("/test", (req, res) => {
 });
 
 /**
+ * Simple ping endpoint that Swish might use to verify callback URL
+ * GET /api/swish/callback (some providers test with GET before using POST)
+ */
+router.get("/callback", (req, res) => {
+  console.log("🔍 GET request to callback endpoint - this might be Swish testing the URL");
+  console.log("Headers:", JSON.stringify(req.headers, null, 2));
+  console.log("Query params:", req.query);
+  
+  res.status(200).json({ 
+    message: "Callback endpoint is accessible",
+    method: "GET",
+    timestamp: new Date().toISOString()
+  });
+});
+
+/**
  * Handle Swish Callback
  * POST /api/swish/callback
  */

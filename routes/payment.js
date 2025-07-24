@@ -71,7 +71,7 @@ router.post("/create-swish-payment", async (req, res) => {
     console.log(`📥 Swish API response status: ${response.status}`);
     console.log(`📥 Swish API response headers:`, response.headers);
     console.log(`📥 Swish API response data:`, response.data);
-    
+
     const swishPaymentId = response.data?.id || uuid;
     console.log(`🔗 Using Swish payment ID: ${swishPaymentId} (UUID: ${uuid})`);
 
@@ -110,43 +110,61 @@ router.get("/payment-status/:token", async (req, res) => {
     const createdAt = new Date(paymentData.createdAt);
     const now = new Date();
     const ageInMinutes = (now - createdAt) / (1000 * 60);
-    
+
     // If payment is older than 10 minutes and still CREATED, mark as CANCELLED
     if (paymentData.status === "CREATED" && ageInMinutes > 10) {
-      console.log(`⏰ Payment ${token} is older than 10 minutes and still CREATED - marking as CANCELLED`);
-      
+      console.log(
+        `⏰ Payment ${token} is older than 10 minutes and still CREATED - marking as CANCELLED`
+      );
+
       // Update payment status to CANCELLED
-      const updated = updatePaymentFromCallback(paymentData.paymentRequestToken, { 
-        status: "CANCELLED", 
-        paymentReference: paymentData.payeePaymentReference 
-      });
-      
+      const updated = updatePaymentFromCallback(
+        paymentData.paymentRequestToken,
+        {
+          status: "CANCELLED",
+          paymentReference: paymentData.payeePaymentReference,
+        }
+      );
+
       if (updated) {
         const updatedData = getPaymentData(token);
-        console.log(`✅ Payment ${token} automatically marked as CANCELLED due to timeout`);
+        console.log(
+          `✅ Payment ${token} automatically marked as CANCELLED due to timeout`
+        );
         return res.json(updatedData);
       }
     }
-    
+
     // Check if payment is older than 5 minutes and still CREATED (likely cancelled)
     if (paymentData.status === "CREATED" && ageInMinutes > 5) {
-      console.log(`⚠️ Payment ${token} is older than 5 minutes and still CREATED - likely cancelled by user`);
-      
+      console.log(
+        `⚠️ Payment ${token} is older than 5 minutes and still CREATED - likely cancelled by user`
+      );
+
       // Update payment status to CANCELLED
-      const updated = updatePaymentFromCallback(paymentData.paymentRequestToken, { 
-        status: "CANCELLED", 
-        paymentReference: paymentData.payeePaymentReference 
-      });
-      
+      const updated = updatePaymentFromCallback(
+        paymentData.paymentRequestToken,
+        {
+          status: "CANCELLED",
+          paymentReference: paymentData.payeePaymentReference,
+        }
+      );
+
       if (updated) {
         const updatedData = getPaymentData(token);
-        console.log(`✅ Payment ${token} automatically marked as CANCELLED after 5 minutes`);
+        console.log(
+          `✅ Payment ${token} automatically marked as CANCELLED after 5 minutes`
+        );
         return res.json(updatedData);
       }
     }
 
     console.log(
-      `Returning cached payment data for token: ${token}, status: ${paymentData.status}, swishId: ${paymentData.paymentRequestToken}, age: ${Math.round(ageInMinutes)} minutes`
+      `Returning cached payment data for token: ${token}, status: ${
+        paymentData.status
+      }, swishId: ${paymentData.paymentRequestToken}, age: ${Math.round(
+        ageInMinutes
+      )} minutes`
     );
 
     // Return cached payment data
@@ -182,7 +200,7 @@ router.get("/debug/payments", (req, res) => {
 router.post("/test/callback/:token", (req, res) => {
   const { token } = req.params;
   const { status = "PAID" } = req.body;
-  
+
   try {
     // Get the payment data to find the Swish payment ID
     const paymentData = getPaymentData(token);
@@ -190,12 +208,14 @@ router.post("/test/callback/:token", (req, res) => {
       return res.status(404).json({ error: "Payment not found" });
     }
 
-    console.log(`🧪 Testing callback for token: ${token}, swishId: ${paymentData.paymentRequestToken}`);
-    
+    console.log(
+      `🧪 Testing callback for token: ${token}, swishId: ${paymentData.paymentRequestToken}`
+    );
+
     // Simulate a callback by updating the payment status
-    const updated = updatePaymentFromCallback(paymentData.paymentRequestToken, { 
-      status, 
-      paymentReference: paymentData.payeePaymentReference 
+    const updated = updatePaymentFromCallback(paymentData.paymentRequestToken, {
+      status,
+      paymentReference: paymentData.payeePaymentReference,
     });
 
     if (updated) {
@@ -217,7 +237,7 @@ router.post("/test/callback/:token", (req, res) => {
  */
 router.post("/cancel-payment/:token", (req, res) => {
   const { token } = req.params;
-  
+
   try {
     // Get the payment data
     const paymentData = getPaymentData(token);
@@ -227,26 +247,26 @@ router.post("/cancel-payment/:token", (req, res) => {
 
     // Only allow cancellation if payment is still CREATED
     if (paymentData.status !== "CREATED") {
-      return res.status(400).json({ 
-        error: "Payment cannot be cancelled", 
-        currentStatus: paymentData.status 
+      return res.status(400).json({
+        error: "Payment cannot be cancelled",
+        currentStatus: paymentData.status,
       });
     }
 
     console.log(`🚫 Manual cancellation requested for token: ${token}`);
-    
+
     // Update payment status to CANCELLED
-    const updated = updatePaymentFromCallback(paymentData.paymentRequestToken, { 
-      status: "CANCELLED", 
-      paymentReference: paymentData.payeePaymentReference 
+    const updated = updatePaymentFromCallback(paymentData.paymentRequestToken, {
+      status: "CANCELLED",
+      paymentReference: paymentData.payeePaymentReference,
     });
 
     if (updated) {
       const updatedData = getPaymentData(token);
       console.log("✅ Payment manually cancelled successfully");
-      res.json({ 
-        message: "Payment cancelled successfully", 
-        payment: updatedData 
+      res.json({
+        message: "Payment cancelled successfully",
+        payment: updatedData,
       });
     } else {
       console.log("❌ Manual cancellation failed");
