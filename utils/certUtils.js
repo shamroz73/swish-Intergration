@@ -25,15 +25,25 @@ function loadCertificates() {
 
   if (!config.certificates.certBase64 || !config.certificates.keyBase64) {
     console.error("❌ Missing certificate environment variables");
-    console.log("SWISH_CERT_BASE64:", config.certificates.certBase64 ? "Present" : "Missing");
-    console.log("SWISH_KEY_BASE64:", config.certificates.keyBase64 ? "Present" : "Missing");
+    console.log(
+      "SWISH_CERT_BASE64:",
+      config.certificates.certBase64 ? "Present" : "Missing"
+    );
+    console.log(
+      "SWISH_KEY_BASE64:",
+      config.certificates.keyBase64 ? "Present" : "Missing"
+    );
     return { cert: null, key: null };
   }
 
   try {
     // Decode Base64 certificates
-    const cert = Buffer.from(config.certificates.certBase64, "base64").toString("utf8");
-    const key = Buffer.from(config.certificates.keyBase64, "base64").toString("utf8");
+    const cert = Buffer.from(config.certificates.certBase64, "base64").toString(
+      "utf8"
+    );
+    const key = Buffer.from(config.certificates.keyBase64, "base64").toString(
+      "utf8"
+    );
 
     console.log("✅ Certificates loaded successfully");
     console.log("Certificate starts with:", cert.substring(0, 50) + "...");

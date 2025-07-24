@@ -11,6 +11,7 @@ import {
   getPaymentData,
   updatePaymentFromCallback,
   checkSwishPaymentStatus,
+  getAllPayments,
 } from "../utils/index.js";
 
 const router = express.Router();
@@ -100,8 +101,10 @@ router.get("/payment-status/:token", async (req, res) => {
     // Note: Swish API doesn't support GET requests for payment status checking
     // Status updates should come through callbacks (/api/swish/callback)
     // For now, we return the cached payment data
-    
-    console.log(`Returning cached payment data for token: ${token}, status: ${paymentData.status}`);
+
+    console.log(
+      `Returning cached payment data for token: ${token}, status: ${paymentData.status}, swishId: ${paymentData.paymentRequestToken}`
+    );
 
     // Return cached payment data
     res.json(paymentData);
@@ -111,6 +114,21 @@ router.get("/payment-status/:token", async (req, res) => {
       error: "Internal server error",
       timestamp: new Date().toISOString(),
     });
+  }
+});
+
+/**
+ * Debug endpoint to show all stored payments
+ * GET /api/debug/payments
+ */
+router.get("/debug/payments", (req, res) => {
+  try {
+    const allPayments = getAllPayments();
+    console.log("🔍 Debug: All stored payments:", allPayments);
+    res.json(allPayments);
+  } catch (error) {
+    console.error("Error in debug endpoint:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

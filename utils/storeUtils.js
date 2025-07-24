@@ -37,27 +37,32 @@ function getPaymentData(token) {
 
 /**
  * Update payment status from callback
- * @param {string} id - Payment ID
+ * @param {string} id - Payment ID from Swish callback
  * @param {Object} callbackData - Callback data from Swish
  */
 function updatePaymentFromCallback(id, callbackData) {
   const { status, paymentReference } = callbackData;
 
-  if (paymentStore.has(id)) {
-    const paymentData = paymentStore.get(id);
-    paymentData.status = status;
-    paymentData.paymentReference = paymentReference;
+  // Find payment by paymentRequestToken (Swish payment ID) since callback sends that as 'id'
+  for (const [token, paymentData] of paymentStore.entries()) {
+    if (paymentData.paymentRequestToken === id) {
+      paymentData.status = status;
+      paymentData.paymentReference = paymentReference;
 
-    // Add completion timestamp for final statuses
-    if (["PAID", "DECLINED", "ERROR", "CANCELLED"].includes(status)) {
-      paymentData.completedAt = new Date().toISOString();
-    } else {
-      paymentData.updatedAt = new Date().toISOString();
+      // Add completion timestamp for final statuses
+      if (["PAID", "DECLINED", "ERROR", "CANCELLED"].includes(status)) {
+        paymentData.completedAt = new Date().toISOString();
+      } else {
+        paymentData.updatedAt = new Date().toISOString();
+      }
+
+      paymentStore.set(token, paymentData);
+      console.log(`✅ Updated payment ${token} (Swish ID: ${id}) with status: ${status}`);
+      return true;
     }
-
-    paymentStore.set(id, paymentData);
-    return true;
   }
+  
+  console.log(`❌ Payment not found for Swish ID: ${id}`);
   return false;
 }
 
@@ -70,9 +75,18 @@ function hasPayment(token) {
   return paymentStore.has(token);
 }
 
+/**
+ * Get all payments (for debugging)
+ * @returns {Array} - Array of all payment data
+ */
+function getAllPayments() {
+  return Array.from(paymentStore.values());
+}
+
 export {
   storePaymentData,
   getPaymentData,
   updatePaymentFromCallback,
   hasPayment,
+  getAllPayments,
 };
