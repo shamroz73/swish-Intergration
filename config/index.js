@@ -15,12 +15,8 @@ const config = {
     callbackUrl: process.env.SWISH_CALLBACK_URL,
   },
 
-  // Certificate configuration
+  // Certificate configuration (base64 only)
   certificates: {
-    certPath: process.env.SWISH_CERT_PATH,
-    keyPath: process.env.SWISH_KEY_PATH,
-    cert: process.env.SWISH_CERT,
-    key: process.env.SWISH_KEY,
     certBase64: process.env.SWISH_CERT_BASE64,
     keyBase64: process.env.SWISH_KEY_BASE64,
   },
