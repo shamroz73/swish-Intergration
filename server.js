@@ -152,17 +152,87 @@ if (cert && key) {
   console.warn("⚠️ No HTTPS agent created - Swish API calls will fail");
 }
 
-// Health check endpoint
-app.get("/health", (req, res) => {
-  res.json({ 
-    status: "healthy", 
-    service: "Swish Payment API",
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || "development",
-    hasSwishCertificates: !!(cert && key),
-    hasSwishAgent: !!agent,
-    swishApiEnabled: !!(agent && process.env.SWISH_API_URL && process.env.SWISH_PAYEE_ALIAS),
-  });
+// Simple endpoint to debug environment variables
+app.get("/api/debug-env", (req, res) => {
+  try {
+    const hasEnvVars = !!(process.env.SWISH_CERT_BASE64 && process.env.SWISH_KEY_BASE64);
+    
+    if (!hasEnvVars) {
+      return res.json({
+        error: "Missing environment variables",
+        hasSwishCertBase64: !!process.env.SWISH_CERT_BASE64,
+        hasSwishKeyBase64: !!process.env.SWISH_KEY_BASE64,
+        isVercel: !!process.env.VERCEL
+      });
+    }
+
+    // Try to decode and check the certificates
+    const certBase64 = process.env.SWISH_CERT_BASE64;
+    const keyBase64 = process.env.SWISH_KEY_BASE64;
+    
+    console.log("🔍 Env vars length check:", {
+      certBase64Length: certBase64.length,
+      keyBase64Length: keyBase64.length,
+      certFirst50: certBase64.substring(0, 50),
+      keyFirst50: keyBase64.substring(0, 50)
+    });
+    
+    // Try to decode
+    let cert, key;
+    try {
+      cert = Buffer.from(certBase64, "base64").toString("utf8");
+      key = Buffer.from(keyBase64, "base64").toString("utf8");
+      
+      console.log("🔍 Decoded lengths:", {
+        certLength: cert.length,
+        keyLength: key.length,
+        certFirst100: cert.substring(0, 100),
+        keyFirst100: key.substring(0, 100)
+      });
+      
+    } catch (decodeError) {
+      console.error("❌ Decode error:", decodeError);
+      return res.json({
+        error: "Failed to decode certificates",
+        decodeError: decodeError.message,
+        certBase64Length: certBase64.length,
+        keyBase64Length: keyBase64.length
+      });
+    }
+
+    // Check PEM format
+    const certValid = cert.includes("-----BEGIN CERTIFICATE-----") && cert.includes("-----END CERTIFICATE-----");
+    const keyValid = key.includes("-----BEGIN PRIVATE KEY-----") && key.includes("-----END PRIVATE KEY-----");
+    
+    console.log("🔍 PEM validation:", { certValid, keyValid });
+    
+    res.json({
+      status: "debug-complete",
+      environment: {
+        isVercel: !!process.env.VERCEL,
+        hasSwishCertBase64: !!process.env.SWISH_CERT_BASE64,
+        hasSwishKeyBase64: !!process.env.SWISH_KEY_BASE64,
+        certBase64Length: certBase64.length,
+        keyBase64Length: keyBase64.length
+      },
+      decoded: {
+        certLength: cert.length,
+        keyLength: key.length,
+        certValid,
+        keyValid,
+        certPreview: cert.substring(0, 100),
+        keyPreview: key.substring(0, 100)
+      }
+    });
+    
+  } catch (error) {
+    console.error("❌ Debug endpoint error:", error);
+    res.status(500).json({
+      error: "Debug endpoint failed",
+      message: error.message,
+      stack: error.stack
+    });
+  }
 });
 
 // Root endpoint serves React app
