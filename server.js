@@ -23,31 +23,42 @@ app.use(express.static(path.join(__dirname, "client/build")));
 // Certificate loading and HTTPS agent setup
 let cert, key;
 
-if (isDevelopment) {
-  console.log("🔧 Environment check:", {
-    isVercel: !!process.env.VERCEL,
-    hasCallbackUrl: !!process.env.SWISH_CALLBACK_URL,
-    hasPayeeAlias: !!process.env.SWISH_PAYEE_ALIAS,
-    hasApiUrl: !!process.env.SWISH_API_URL,
-    hasCertBase64: !!process.env.SWISH_CERT_BASE64,
-    hasKeyBase64: !!process.env.SWISH_KEY_BASE64,
-  });
-}
+// Always log environment check for debugging
+console.log("🔧 Environment check:", {
+  isVercel: !!process.env.VERCEL,
+  hasCallbackUrl: !!process.env.SWISH_CALLBACK_URL,
+  hasPayeeAlias: !!process.env.SWISH_PAYEE_ALIAS,
+  hasApiUrl: !!process.env.SWISH_API_URL,
+  hasCertBase64: !!process.env.SWISH_CERT_BASE64,
+  hasKeyBase64: !!process.env.SWISH_KEY_BASE64,
+  certBase64Length: process.env.SWISH_CERT_BASE64?.length || 0,
+  keyBase64Length: process.env.SWISH_KEY_BASE64?.length || 0,
+});
 
 // Load certificates based on environment
 if (process.env.VERCEL) {
   console.log("🌟 Running on Vercel - loading certificates from environment variables");
-  cert = Buffer.from(process.env.SWISH_CERT_BASE64 || "", "base64");
-  key = Buffer.from(process.env.SWISH_KEY_BASE64 || "", "base64");
   
-  if (isDevelopment) {
-    console.log("📜 Certificate loaded:", {
-      certSize: cert.length,
-      keySize: key.length,
-    });
+  if (!process.env.SWISH_CERT_BASE64 || !process.env.SWISH_KEY_BASE64) {
+    console.error("❌ Missing certificate environment variables on Vercel");
+    throw new Error("Missing SWISH_CERT_BASE64 or SWISH_KEY_BASE64 environment variables");
   }
+  
+  cert = Buffer.from(process.env.SWISH_CERT_BASE64, "base64");
+  key = Buffer.from(process.env.SWISH_KEY_BASE64, "base64");
+  
+  console.log("📜 Certificate loaded:", {
+    certSize: cert.length,
+    keySize: key.length,
+  });
 } else {
   console.log("💻 Running locally - loading certificates from files");
+  
+  if (!process.env.SWISH_CERT_PATH || !process.env.SWISH_KEY_PATH) {
+    console.error("❌ Missing certificate file paths for local development");
+    throw new Error("Missing SWISH_CERT_PATH or SWISH_KEY_PATH environment variables");
+  }
+  
   cert = fs.readFileSync(path.resolve(__dirname, process.env.SWISH_CERT_PATH));
   key = fs.readFileSync(path.resolve(__dirname, process.env.SWISH_KEY_PATH));
 }
@@ -253,20 +264,24 @@ function storePaymentData(uuid, { paymentRequestToken, phoneNumber, amount, paym
 }
 
 function handleSwishApiError(error, res) {
-  if (isDevelopment) {
-    console.error("❌ Swish API Error:", {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-    });
-  }
+  // Always log errors for debugging in production
+  console.error("❌ Swish API Error:", {
+    message: error.message,
+    status: error.response?.status,
+    statusText: error.response?.statusText,
+    data: error.response?.data,
+    code: error.code,
+    url: error.config?.url,
+    method: error.config?.method,
+  });
 
   const errorMessage = error.response?.data?.message || error.message || "Failed to create Swish payment";
   const statusCode = error.response?.status || 500;
 
   res.status(statusCode).json({
     error: errorMessage,
-    details: error.response?.data || "Internal server error",
+    details: isDevelopment ? error.response?.data || error.message : "Internal server error",
+    timestamp: new Date().toISOString(),
   });
 }
 

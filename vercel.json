@@ -12,15 +12,11 @@
   ],
   "routes": [
     {
+      "src": "/health",
+      "dest": "/server.js"
+    },
+    {
       "src": "/api/(.*)",
-      "dest": "/server.js"
-    },
-    {
-      "src": "/swish-callback",
-      "dest": "/server.js"
-    },
-    {
-      "src": "/test-callback",
       "dest": "/server.js"
     },
     {
@@ -29,8 +25,10 @@
     }
   ],
   "env": {
+    "NODE_ENV": "production",
     "PORT": "3000",
     "SWISH_PAYEE_ALIAS": "1232475101",
-    "SWISH_API_URL": "https://cpc.getswish.net"
+    "SWISH_API_URL": "https://cpc.getswish.net",
+    "SWISH_CALLBACK_URL": "https://swisp-lw54by11b-shamroz-warraichs-projects.vercel.app/api/swish/callback"
   }
 }

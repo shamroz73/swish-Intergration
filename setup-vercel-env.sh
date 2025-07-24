@@ -27,6 +27,8 @@ cat cert.base64 | vercel env add SWISH_CERT_BASE64 production
 echo "Setting SWISH_KEY_BASE64..."
 cat key.base64 | vercel env add SWISH_KEY_BASE64 production
 
+echo "Setting SWISH_CALLBACK_URL..."
+echo "https://swisp-lw54by11b-shamroz-warraichs-projects.vercel.app/api/swish/callback" | vercel env add SWISH_CALLBACK_URL production
+
 echo "Environment variables setup complete!"
-echo "Note: SWISH_CALLBACK_URL will be set after deployment with your actual Vercel URL."
-echo "Current production URL: https://swisp-lw54by11b-shamroz-warraichs-projects.vercel.app"
+echo "✅ All environment variables are now set for production deployment."
