@@ -51,9 +51,19 @@ try {
     }
     
     console.log("🔍 Decoding certificates from base64...");
+    console.log("Base64 cert length:", process.env.SWISH_CERT_BASE64.length);
+    console.log("Base64 key length:", process.env.SWISH_KEY_BASE64.length);
+    console.log("Base64 cert first 100 chars:", process.env.SWISH_CERT_BASE64.substring(0, 100));
+    console.log("Base64 key first 100 chars:", process.env.SWISH_KEY_BASE64.substring(0, 100));
+    
     // Decode base64 to string (PEM format) and ensure proper line endings
     const rawCert = Buffer.from(process.env.SWISH_CERT_BASE64, "base64").toString("utf8");
     const rawKey = Buffer.from(process.env.SWISH_KEY_BASE64, "base64").toString("utf8");
+    
+    console.log("Decoded cert length:", rawCert.length);
+    console.log("Decoded key length:", rawKey.length);
+    console.log("Decoded cert first 200 chars:", rawCert.substring(0, 200));
+    console.log("Decoded key first 200 chars:", rawKey.substring(0, 200));
     
     // Ensure proper PEM formatting with correct line endings
     cert = rawCert.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
