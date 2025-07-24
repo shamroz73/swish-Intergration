@@ -29,7 +29,11 @@ const PaymentStatus = () => {
           response.data.status === "ERROR" ||
           response.data.status === "CANCELLED"
         ) {
-          setStatus("failed");
+          if (response.data.status === "CANCELLED") {
+            setStatus("cancelled");
+          } else {
+            setStatus("failed");
+          }
           setPaymentInfo(response.data);
         }
         // Continue polling if status is still CREATED or other pending status
