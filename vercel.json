@@ -23,12 +23,5 @@
       "src": "/(.*)",
       "dest": "/client/build/$1"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production",
-    "PORT": "3000",
-    "SWISH_PAYEE_ALIAS": "1232475101",
-    "SWISH_API_URL": "https://cpc.getswish.net",
-    "SWISH_CALLBACK_URL": "https://swisp-lw54by11b-shamroz-warraichs-projects.vercel.app/api/swish/callback"
-  }
+  ]
 }
