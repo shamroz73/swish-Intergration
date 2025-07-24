@@ -51,14 +51,17 @@ try {
     }
     
     console.log("🔍 Decoding certificates from base64...");
-    cert = Buffer.from(process.env.SWISH_CERT_BASE64, "base64");
-    key = Buffer.from(process.env.SWISH_KEY_BASE64, "base64");
+    // Decode base64 to string (PEM format)
+    cert = Buffer.from(process.env.SWISH_CERT_BASE64, "base64").toString("utf8");
+    key = Buffer.from(process.env.SWISH_KEY_BASE64, "base64").toString("utf8");
     
     console.log("📜 Certificate loaded successfully:", {
       certSize: cert.length,
       keySize: key.length,
       certValid: cert.length > 0,
       keyValid: key.length > 0,
+      certStartsWith: cert.substring(0, 50),
+      keyStartsWith: key.substring(0, 50),
     });
   } else {
     console.log("💻 Running locally - loading certificates from files");
