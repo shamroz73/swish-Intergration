@@ -1,10 +1,67 @@
 import https from "https";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import config from "../config/index.js";
+
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Certificate management utilities for Swish API authentication
  * Simplified to only use base64 approach for both local and production
  */
+
+/**
+ * Load certificates from text files (as fallback)
+ * @returns {Object} Certificate and key data
+ */
+function loadCertificatesFromFiles() {
+  console.log("📁 Attempting to load certificates from files...");
+  
+  try {
+    const certPath = path.join(__dirname, '..', 'certs', 'cert.txt');
+    const keyPath = path.join(__dirname, '..', 'certs', 'key.txt');
+    
+    console.log(`🔍 Looking for cert at: ${certPath}`);
+    console.log(`🔍 Looking for key at: ${keyPath}`);
+    
+    // Check if files exist
+    if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
+      console.log("❌ Certificate files not found");
+      return { cert: null, key: null };
+    }
+    
+    // Read the files
+    const certBase64 = fs.readFileSync(certPath, 'utf8')
+      .replace(/\/\/.*$/gm, '') // Remove comments
+      .replace(/\s/g, ''); // Remove whitespace
+      
+    const keyBase64 = fs.readFileSync(keyPath, 'utf8')
+      .replace(/\/\/.*$/gm, '') // Remove comments  
+      .replace(/\s/g, ''); // Remove whitespace
+    
+    if (!certBase64 || !keyBase64 || certBase64.length < 100 || keyBase64.length < 100) {
+      console.log("❌ Certificate files appear to be empty or contain placeholders");
+      return { cert: null, key: null };
+    }
+    
+    // Decode base64
+    const cert = Buffer.from(certBase64, "base64").toString("utf8");
+    const key = Buffer.from(keyBase64, "base64").toString("utf8");
+    
+    console.log("✅ Certificates loaded successfully from files");
+    console.log("Certificate starts with:", cert.substring(0, 50) + "...");
+    console.log("Key starts with:", key.substring(0, 50) + "...");
+    
+    return { cert, key };
+    
+  } catch (error) {
+    console.error("❌ Error loading certificates from files:", error);
+    return { cert: null, key: null };
+  }
+}
 
 /**
  * Alternative certificate loading - try multiple approaches
@@ -97,6 +154,13 @@ function loadCertificates() {
       return altResult;
     }
 
+    // Try loading from files as another fallback
+    console.log("🔄 Attempting file-based certificate loading...");
+    const fileResult = loadCertificatesFromFiles();
+    if (fileResult.cert && fileResult.key) {
+      return fileResult;
+    }
+
     // Try to load directly from process.env as fallback
     if (process.env.SWISH_CERT_BASE64 && process.env.SWISH_KEY_BASE64) {
       console.log("🔄 Attempting direct load from process.env");
@@ -180,4 +244,4 @@ function createHttpsAgent(cert, key) {
   }
 }
 
-export { loadCertificates, loadCertificatesAlternative, createHttpsAgent };
+export { loadCertificates, loadCertificatesAlternative, loadCertificatesFromFiles, createHttpsAgent };

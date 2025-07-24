@@ -3,6 +3,7 @@ import {
   updatePaymentFromCallback,
   checkSwishPaymentStatus,
 } from "../utils/index.js";
+import { loadCertificatesFromFiles } from "../utils/certUtils.js";
 
 const router = express.Router();
 
@@ -93,6 +94,29 @@ router.get("/check-status/:paymentId", async (req, res) => {
       paymentId,
     });
   }
+});
+
+/**
+ * Test file-based certificate loading
+ * GET /api/swish/test-file-certs
+ */
+router.get("/test-file-certs", (req, res) => {
+  console.log("🧪 Testing file-based certificate loading");
+  
+  const result = loadCertificatesFromFiles();
+  
+  res.json({
+    timestamp: new Date().toISOString(),
+    fileLoadingTest: {
+      success: !!(result.cert && result.key),
+      hasCert: !!result.cert,
+      hasKey: !!result.key,
+      certPreview: result.cert ? result.cert.substring(0, 50) + "..." : "NOT_FOUND",
+      keyPreview: result.key ? result.key.substring(0, 50) + "..." : "NOT_FOUND",
+      certLength: result.cert?.length || 0,
+      keyLength: result.key?.length || 0,
+    }
+  });
 });
 
 /**

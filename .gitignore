@@ -4,3 +4,7 @@ node_modules
 cert.base64
 key.base64
 client/build/
+
+# Certificate files with actual values (keep structure, ignore content)
+# certs/cert.txt
+# certs/key.txt
