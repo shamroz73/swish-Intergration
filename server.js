@@ -24,11 +24,20 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "client/build")));
 
 // Initialize certificates and HTTPS agent
+console.log("🚀 Initializing Swish certificates...");
 const { cert, key } = loadCertificates();
 const agent = createHttpsAgent(cert, key);
 
 // Store agent in app locals for route access
 app.locals.agent = agent;
+
+// Log the final state
+if (agent) {
+  console.log("✅ Swish HTTPS agent created successfully");
+} else {
+  console.log("⚠️ No HTTPS agent created - Swish API calls will fail");
+  console.log("⚠️ Starting server without Swish certificates - API will be disabled");
+}
 
 // Root endpoint serves React app
 app.get("/", (req, res) => {

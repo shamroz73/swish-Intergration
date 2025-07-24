@@ -20,6 +20,13 @@ function loadCertificates() {
     hasKeyBase64: !!config.certificates.keyBase64,
     certBase64Length: config.certificates.certBase64?.length || 0,
     keyBase64Length: config.certificates.keyBase64?.length || 0,
+    // Additional debugging
+    envVarDebug: {
+      SWISH_CERT_BASE64_present: !!process.env.SWISH_CERT_BASE64,
+      SWISH_KEY_BASE64_present: !!process.env.SWISH_KEY_BASE64,
+      SWISH_CERT_BASE64_length: process.env.SWISH_CERT_BASE64?.length || 0,
+      SWISH_KEY_BASE64_length: process.env.SWISH_KEY_BASE64?.length || 0,
+    }
   });
 
   // Additional debugging for Vercel
@@ -35,21 +42,38 @@ function loadCertificates() {
   }
 
   if (!config.certificates.certBase64 || !config.certificates.keyBase64) {
-    console.log("❌ Missing certificate environment variables on Vercel");
-    console.log("Environment variables status:", {
+    console.log("⚠️  Certificate environment variables not found in config");
+    console.log("Direct environment check:", {
       SWISH_CERT_BASE64: !!process.env.SWISH_CERT_BASE64,
       SWISH_KEY_BASE64: !!process.env.SWISH_KEY_BASE64,
       VERCEL: !!process.env.VERCEL,
     });
+
+    // Try to load directly from process.env as fallback
+    if (process.env.SWISH_CERT_BASE64 && process.env.SWISH_KEY_BASE64) {
+      console.log("🔄 Attempting direct load from process.env");
+      try {
+        const cert = Buffer.from(process.env.SWISH_CERT_BASE64, "base64").toString("utf8");
+        const key = Buffer.from(process.env.SWISH_KEY_BASE64, "base64").toString("utf8");
+        
+        console.log("✅ Certificates loaded directly from process.env");
+        console.log("Certificate starts with:", cert.substring(0, 50) + "...");
+        console.log("Key starts with:", key.substring(0, 50) + "...");
+        
+        return { cert, key };
+      } catch (error) {
+        console.error("❌ Error decoding certificates from process.env:", error);
+      }
+    }
 
     const error = new Error(
       "Missing SWISH_CERT_BASE64 or SWISH_KEY_BASE64 environment variables"
     );
     console.log("🚨 CRITICAL ERROR: Failed to load certificates", {
       error: error.message,
-      stack: error.stack,
       environment: config.environment,
       isVercel: config.isVercel,
+      note: "This might be a startup timing issue if payment creation works"
     });
 
     return { cert: null, key: null };

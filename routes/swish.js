@@ -87,6 +87,45 @@ router.get("/check-status/:paymentId", async (req, res) => {
 });
 
 /**
+ * Environment debug endpoint - real-time environment check
+ * GET /api/swish/env-debug
+ */
+router.get("/env-debug", (req, res) => {
+  console.log("🔬 Environment debug check requested");
+  
+  const envDebug = {
+    timestamp: new Date().toISOString(),
+    processEnv: {
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL: process.env.VERCEL,
+      SWISH_API_URL: !!process.env.SWISH_API_URL,
+      SWISH_PAYEE_ALIAS: !!process.env.SWISH_PAYEE_ALIAS,
+      SWISH_CALLBACK_URL: !!process.env.SWISH_CALLBACK_URL,
+      SWISH_CERT_BASE64: !!process.env.SWISH_CERT_BASE64,
+      SWISH_KEY_BASE64: !!process.env.SWISH_KEY_BASE64,
+    },
+    envLengths: {
+      SWISH_CERT_BASE64: process.env.SWISH_CERT_BASE64?.length || 0,
+      SWISH_KEY_BASE64: process.env.SWISH_KEY_BASE64?.length || 0,
+      SWISH_API_URL: process.env.SWISH_API_URL?.length || 0,
+      SWISH_CALLBACK_URL: process.env.SWISH_CALLBACK_URL?.length || 0,
+    },
+    agent: {
+      available: !!req.app.locals.agent,
+      type: typeof req.app.locals.agent,
+    },
+    actualValues: {
+      callbackUrl: process.env.SWISH_CALLBACK_URL,
+      apiUrl: process.env.SWISH_API_URL,
+    }
+  };
+  
+  console.log("🔬 Environment debug:", JSON.stringify(envDebug, null, 2));
+  
+  res.json(envDebug);
+});
+
+/**
  * System status endpoint - check Swish integration health
  * GET /api/swish/status
  */
