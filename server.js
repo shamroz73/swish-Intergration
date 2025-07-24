@@ -40,34 +40,51 @@ try {
   if (process.env.VERCEL) {
     console.log("🌟 Running on Vercel - loading certificates from environment variables");
     
-    if (!process.env.SWISH_CERT_BASE64 || !process.env.SWISH_KEY_BASE64) {
+    // Try raw PEM first (new approach), fallback to base64 (old approach)
+    if (process.env.SWISH_CERT && process.env.SWISH_KEY) {
+      console.log("🔍 Loading certificates directly as PEM format...");
+      
+      cert = process.env.SWISH_CERT;
+      key = process.env.SWISH_KEY;
+      
+      console.log("📜 Raw PEM certificates loaded:", {
+        certSize: cert.length,
+        keySize: key.length,
+        certStartsWith: cert.substring(0, 50),
+        keyStartsWith: key.substring(0, 50),
+        certHasPemHeaders: cert.includes('-----BEGIN CERTIFICATE-----'),
+        keyHasPemHeaders: key.includes('-----BEGIN PRIVATE KEY-----'),
+      });
+      
+    } else if (process.env.SWISH_CERT_BASE64 && process.env.SWISH_KEY_BASE64) {
+      console.log("🔍 Fallback: Decoding certificates from base64...");
+      
+      // Decode base64 to string (PEM format) and ensure proper line endings
+      const rawCert = Buffer.from(process.env.SWISH_CERT_BASE64, "base64").toString("utf8");
+      const rawKey = Buffer.from(process.env.SWISH_KEY_BASE64, "base64").toString("utf8");
+      
+      // Ensure proper PEM formatting with correct line endings
+      cert = rawCert.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      key = rawKey.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      
+      console.log("📜 Base64 certificates decoded:", {
+        certSize: cert.length,
+        keySize: key.length,
+        certStartsWith: cert.substring(0, 50),
+        keyStartsWith: key.substring(0, 50),
+      });
+      
+    } else {
       console.error("❌ Missing certificate environment variables on Vercel");
       console.error("Environment variables status:", {
+        SWISH_CERT: !!process.env.SWISH_CERT,
+        SWISH_KEY: !!process.env.SWISH_KEY,
         SWISH_CERT_BASE64: !!process.env.SWISH_CERT_BASE64,
         SWISH_KEY_BASE64: !!process.env.SWISH_KEY_BASE64,
         VERCEL: !!process.env.VERCEL,
       });
-      throw new Error("Missing SWISH_CERT_BASE64 or SWISH_KEY_BASE64 environment variables");
+      throw new Error("Missing certificate environment variables. Need either SWISH_CERT/SWISH_KEY or SWISH_CERT_BASE64/SWISH_KEY_BASE64");
     }
-    
-    console.log("🔍 Decoding certificates from base64...");
-    console.log("Base64 cert length:", process.env.SWISH_CERT_BASE64.length);
-    console.log("Base64 key length:", process.env.SWISH_KEY_BASE64.length);
-    console.log("Base64 cert first 100 chars:", process.env.SWISH_CERT_BASE64.substring(0, 100));
-    console.log("Base64 key first 100 chars:", process.env.SWISH_KEY_BASE64.substring(0, 100));
-    
-    // Decode base64 to string (PEM format) and ensure proper line endings
-    const rawCert = Buffer.from(process.env.SWISH_CERT_BASE64, "base64").toString("utf8");
-    const rawKey = Buffer.from(process.env.SWISH_KEY_BASE64, "base64").toString("utf8");
-    
-    console.log("Decoded cert length:", rawCert.length);
-    console.log("Decoded key length:", rawKey.length);
-    console.log("Decoded cert first 200 chars:", rawCert.substring(0, 200));
-    console.log("Decoded key first 200 chars:", rawKey.substring(0, 200));
-    
-    // Ensure proper PEM formatting with correct line endings
-    cert = rawCert.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    key = rawKey.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     
     // Validate PEM format
     if (!cert.includes('-----BEGIN CERTIFICATE-----') || !cert.includes('-----END CERTIFICATE-----')) {
@@ -76,17 +93,6 @@ try {
     if (!key.includes('-----BEGIN PRIVATE KEY-----') || !key.includes('-----END PRIVATE KEY-----')) {
       throw new Error('Invalid private key format - missing PEM headers');
     }
-    
-    console.log("📜 Certificate loaded successfully:", {
-      certSize: cert.length,
-      keySize: key.length,
-      certValid: cert.length > 0,
-      keyValid: key.length > 0,
-      certStartsWith: cert.substring(0, 50),
-      keyStartsWith: key.substring(0, 50),
-      certHasPemHeaders: cert.includes('-----BEGIN CERTIFICATE-----'),
-      keyHasPemHeaders: key.includes('-----BEGIN PRIVATE KEY-----'),
-    });
   } else {
     console.log("💻 Running locally - loading certificates from files");
     
