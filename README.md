@@ -11,16 +11,19 @@ A complete full-stack application for integrating Swedish Swish payments with re
 ## 🔄 Recent Updates (July 2025)
 
 ### ✅ **Certificate Handling Improvements**
+
 - Fixed PEM format issues by converting Buffer to UTF-8 string
 - Enhanced error logging for certificate loading failures
 - Added comprehensive environment variable validation
 
-### ✅ **Deployment Enhancements** 
+### ✅ **Deployment Enhancements**
+
 - Resolved Vercel authentication protection issues
 - Created fresh deployment without authentication screens
 - Cleaned up environment variable conflicts in `vercel.json`
 
 ### ✅ **API Reliability**
+
 - Added API availability checks before processing payments
 - Enhanced error handling for production deployment
 - Improved startup logging for debugging certificate issues
@@ -101,6 +104,7 @@ SWISH_TLS_PATH=certs/SwishCAs.pem
 ### 4. Add Certificates
 
 Place your Swish certificates in the `certs/` directory:
+
 - Production certificate (`swish_certificate_*.pem`)
 - Private key (`client_tls_private_key.pem`)
 - Swish CA certificates (`SwishCAs.pem`)
@@ -141,11 +145,13 @@ vercel --prod
 ## 🔧 Environment Configuration
 
 ### Local Development
+
 - Uses certificate files directly from `certs/` folder
 - Callback URL: `http://localhost:3000/api/swish/callback`
 - Certificates loaded from file system
 
 ### Production (Vercel)
+
 - Uses base64 encoded certificates from environment variables
 - Callback URL: `https://your-app.vercel.app/api/swish/callback`
 - Certificates loaded from `SWISH_CERT_BASE64` and `SWISH_KEY_BASE64`
@@ -188,7 +194,7 @@ sequenceDiagram
     Swish-->>Backend: Payment token & instructions
     Backend-->>Frontend: Payment details
     Frontend-->>User: Show "Open Swish App"
-    
+
     User->>SwishApp: Approve/Decline payment
     SwishApp->>Swish: Payment decision
     Swish->>Backend: Callback with status
@@ -203,6 +209,7 @@ sequenceDiagram
 Create a new Swish payment request.
 
 **Request:**
+
 ```json
 {
   "phoneNumber": "46761581756",
@@ -211,6 +218,7 @@ Create a new Swish payment request.
 ```
 
 **Response:**
+
 ```json
 {
   "token": "11A86BE70EA346E4B1C39C874173F088",
@@ -224,6 +232,7 @@ Create a new Swish payment request.
 Get current payment status.
 
 **Response:**
+
 ```json
 {
   "token": "11A86BE70EA346E4B1C39C874173F088",
@@ -320,7 +329,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ✅ **Connected to Vercel**: Automatic deployments enabled  
 ✅ **GitHub Integration**: Push to `main` triggers deployment  
 ✅ **Environment Variables**: Pre-configured for production  
-✅ **SSL Certificates**: Properly configured for Vercel serverless  
+✅ **SSL Certificates**: Properly configured for Vercel serverless
 
 ---
 
