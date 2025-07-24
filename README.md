@@ -4,8 +4,26 @@ A complete full-stack application for integrating Swedish Swish payments with re
 
 ## 🚀 Live Demo
 
-- **Production URL**: [https://swisp-lw54by11b-shamroz-warraichs-projects.vercel.app](https://swisp-lw54by11b-shamroz-warraichs-projects.vercel.app)
+- **Production URL**: [https://swish-payment-oysi9ew1s-shamroz-warraichs-projects.vercel.app](https://swish-payment-oysi9ew1s-shamroz-warraichs-projects.vercel.app)
+- **Health Check**: [/health](https://swish-payment-oysi9ew1s-shamroz-warraichs-projects.vercel.app/health)
 - **Real-time Callbacks**: Instant payment status updates via Swish API webhooks
+
+## 🔄 Recent Updates (July 2025)
+
+### ✅ **Certificate Handling Improvements**
+- Fixed PEM format issues by converting Buffer to UTF-8 string
+- Enhanced error logging for certificate loading failures
+- Added comprehensive environment variable validation
+
+### ✅ **Deployment Enhancements** 
+- Resolved Vercel authentication protection issues
+- Created fresh deployment without authentication screens
+- Cleaned up environment variable conflicts in `vercel.json`
+
+### ✅ **API Reliability**
+- Added API availability checks before processing payments
+- Enhanced error handling for production deployment
+- Improved startup logging for debugging certificate issues
 
 ## ✨ Features
 
