@@ -36,46 +36,91 @@ console.log("🔧 Environment check:", {
 });
 
 // Load certificates based on environment
-if (process.env.VERCEL) {
-  console.log("🌟 Running on Vercel - loading certificates from environment variables");
-  
-  if (!process.env.SWISH_CERT_BASE64 || !process.env.SWISH_KEY_BASE64) {
-    console.error("❌ Missing certificate environment variables on Vercel");
-    throw new Error("Missing SWISH_CERT_BASE64 or SWISH_KEY_BASE64 environment variables");
+try {
+  if (process.env.VERCEL) {
+    console.log("🌟 Running on Vercel - loading certificates from environment variables");
+    
+    if (!process.env.SWISH_CERT_BASE64 || !process.env.SWISH_KEY_BASE64) {
+      console.error("❌ Missing certificate environment variables on Vercel");
+      console.error("Environment variables status:", {
+        SWISH_CERT_BASE64: !!process.env.SWISH_CERT_BASE64,
+        SWISH_KEY_BASE64: !!process.env.SWISH_KEY_BASE64,
+        VERCEL: !!process.env.VERCEL,
+      });
+      throw new Error("Missing SWISH_CERT_BASE64 or SWISH_KEY_BASE64 environment variables");
+    }
+    
+    console.log("🔍 Decoding certificates from base64...");
+    cert = Buffer.from(process.env.SWISH_CERT_BASE64, "base64");
+    key = Buffer.from(process.env.SWISH_KEY_BASE64, "base64");
+    
+    console.log("📜 Certificate loaded successfully:", {
+      certSize: cert.length,
+      keySize: key.length,
+      certValid: cert.length > 0,
+      keyValid: key.length > 0,
+    });
+  } else {
+    console.log("💻 Running locally - loading certificates from files");
+    
+    if (!process.env.SWISH_CERT_PATH || !process.env.SWISH_KEY_PATH) {
+      console.error("❌ Missing certificate file paths for local development");
+      throw new Error("Missing SWISH_CERT_PATH or SWISH_KEY_PATH environment variables");
+    }
+    
+    const certPath = path.resolve(__dirname, process.env.SWISH_CERT_PATH);
+    const keyPath = path.resolve(__dirname, process.env.SWISH_KEY_PATH);
+    
+    console.log("🔍 Loading certificates from files:", { certPath, keyPath });
+    cert = fs.readFileSync(certPath);
+    key = fs.readFileSync(keyPath);
+    
+    console.log("📜 Certificate files loaded successfully:", {
+      certSize: cert.length,
+      keySize: key.length,
+    });
   }
-  
-  cert = Buffer.from(process.env.SWISH_CERT_BASE64, "base64");
-  key = Buffer.from(process.env.SWISH_KEY_BASE64, "base64");
-  
-  console.log("📜 Certificate loaded:", {
-    certSize: cert.length,
-    keySize: key.length,
+} catch (error) {
+  console.error("🚨 CRITICAL ERROR: Failed to load certificates", {
+    error: error.message,
+    stack: error.stack,
+    environment: process.env.NODE_ENV,
+    isVercel: !!process.env.VERCEL,
   });
-} else {
-  console.log("💻 Running locally - loading certificates from files");
   
-  if (!process.env.SWISH_CERT_PATH || !process.env.SWISH_KEY_PATH) {
-    console.error("❌ Missing certificate file paths for local development");
-    throw new Error("Missing SWISH_CERT_PATH or SWISH_KEY_PATH environment variables");
+  // In production, we should still start the server but disable Swish functionality
+  if (process.env.NODE_ENV === 'production') {
+    console.warn("⚠️ Starting server without Swish certificates - API will be disabled");
+    cert = null;
+    key = null;
+  } else {
+    throw error; // In development, fail fast
   }
-  
-  cert = fs.readFileSync(path.resolve(__dirname, process.env.SWISH_CERT_PATH));
-  key = fs.readFileSync(path.resolve(__dirname, process.env.SWISH_KEY_PATH));
 }
 
 // Create HTTPS agent for Swish API communication
-const agent = new https.Agent({
-  cert,
-  key,
-  rejectUnauthorized: true,
-});
+let agent = null;
+if (cert && key) {
+  agent = new https.Agent({
+    cert,
+    key,
+    rejectUnauthorized: true,
+  });
+  console.log("✅ HTTPS agent created successfully for Swish API");
+} else {
+  console.warn("⚠️ No HTTPS agent created - Swish API calls will fail");
+}
 
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.json({ 
     status: "healthy", 
     service: "Swish Payment API",
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+    hasSwishCertificates: !!(cert && key),
+    hasSwishAgent: !!agent,
+    swishApiEnabled: !!(agent && process.env.SWISH_API_URL && process.env.SWISH_PAYEE_ALIAS),
   });
 });
 
@@ -86,6 +131,15 @@ app.get("/", (req, res) => {
 
 //  Route: Create Swish Payment
 app.post("/api/create-swish-payment", async (req, res) => {
+  // Check if Swish API is available
+  if (!agent) {
+    return res.status(503).json({
+      error: "Swish API is not available",
+      message: "Certificate configuration is missing",
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   const { phoneNumber, amount } = req.body;
 
   // Validate required fields
