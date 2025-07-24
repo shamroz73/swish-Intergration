@@ -133,13 +133,17 @@ app.post("/api/create-swish-payment", async (req, res) => {
 
     const payload = {
       payeePaymentReference: paymentReference,
-      callbackUrl: process.env.SWISH_CALLBACK_URL,
       payerAlias: formattedPhone,
       payeeAlias: process.env.SWISH_PAYEE_ALIAS,
       amount: amount.toString(), // Must be string, not number
       currency: "SEK",
       message: "Payment to Yumplee",
     };
+
+    // Only add callbackUrl if it's set (for production/testing)
+    if (process.env.SWISH_CALLBACK_URL) {
+      payload.callbackUrl = process.env.SWISH_CALLBACK_URL;
+    }
 
     // Use correct Swish API endpoint
     const apiUrl = `${process.env.SWISH_API_URL}/swish-cpcapi/api/v2/paymentrequests`;

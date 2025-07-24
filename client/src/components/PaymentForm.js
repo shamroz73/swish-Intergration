@@ -68,7 +68,13 @@ const PaymentForm = () => {
     setError("");
 
     try {
-      const response = await axios.post("/api/create-swish-payment", {
+      // Use test endpoint for local development
+      const isLocalDevelopment = window.location.hostname === 'localhost';
+      const endpoint = isLocalDevelopment 
+        ? "/api/test/create-payment" 
+        : "/api/create-swish-payment";
+        
+      const response = await axios.post(endpoint, {
         phoneNumber: formData.phoneNumber,
         amount: formData.amount,
       });
