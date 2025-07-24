@@ -29,6 +29,12 @@ console.log("🔧 Environment check:", {
   hasCallbackUrl: !!process.env.SWISH_CALLBACK_URL,
   hasPayeeAlias: !!process.env.SWISH_PAYEE_ALIAS,
   hasApiUrl: !!process.env.SWISH_API_URL,
+  // Raw PEM certificates (new approach)
+  hasSwishCert: !!process.env.SWISH_CERT,
+  hasSwishKey: !!process.env.SWISH_KEY,
+  swishCertLength: process.env.SWISH_CERT?.length || 0,
+  swishKeyLength: process.env.SWISH_KEY?.length || 0,
+  // Base64 certificates (fallback)
   hasCertBase64: !!process.env.SWISH_CERT_BASE64,
   hasKeyBase64: !!process.env.SWISH_KEY_BASE64,
   certBase64Length: process.env.SWISH_CERT_BASE64?.length || 0,
@@ -161,14 +167,51 @@ if (cert && key) {
 // Simple endpoint to debug environment variables
 app.get("/api/debug-env", (req, res) => {
   try {
-    const hasEnvVars = !!(process.env.SWISH_CERT_BASE64 && process.env.SWISH_KEY_BASE64);
+    const hasRawPem = !!(process.env.SWISH_CERT && process.env.SWISH_KEY);
+    const hasBase64 = !!(process.env.SWISH_CERT_BASE64 && process.env.SWISH_KEY_BASE64);
     
-    if (!hasEnvVars) {
+    if (!hasRawPem && !hasBase64) {
       return res.json({
         error: "Missing environment variables",
+        hasSwishCert: !!process.env.SWISH_CERT,
+        hasSwishKey: !!process.env.SWISH_KEY,
         hasSwishCertBase64: !!process.env.SWISH_CERT_BASE64,
         hasSwishKeyBase64: !!process.env.SWISH_KEY_BASE64,
         isVercel: !!process.env.VERCEL
+      });
+    }
+
+    // Check raw PEM certificates first
+    if (hasRawPem) {
+      const cert = process.env.SWISH_CERT;
+      const key = process.env.SWISH_KEY;
+      
+      console.log("🔍 Raw PEM env vars check:", {
+        certLength: cert.length,
+        keyLength: key.length,
+        certFirst50: cert.substring(0, 50),
+        keyFirst50: key.substring(0, 50)
+      });
+      
+      const certValid = cert.includes("-----BEGIN CERTIFICATE-----") && cert.includes("-----END CERTIFICATE-----");
+      const keyValid = key.includes("-----BEGIN PRIVATE KEY-----") && key.includes("-----END PRIVATE KEY-----");
+      
+      return res.json({
+        status: "debug-complete",
+        method: "raw-pem",
+        environment: {
+          isVercel: !!process.env.VERCEL,
+          hasSwishCert: true,
+          hasSwishKey: true,
+          certLength: cert.length,
+          keyLength: key.length
+        },
+        validation: {
+          certValid,
+          keyValid,
+          certPreview: cert.substring(0, 100),
+          keyPreview: key.substring(0, 100)
+        }
       });
     }
 
