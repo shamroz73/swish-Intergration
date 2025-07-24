@@ -17,8 +17,6 @@ const PaymentStatus = () => {
 
     const checkPaymentStatus = async () => {
       try {
-        // In a real implementation, you would have an endpoint to check payment status
-        // For now, we'll simulate the status checking
         const response = await axios.get(`/api/payment-status/${token}`);
 
         if (response.data.status === "PAID") {
@@ -36,18 +34,33 @@ const PaymentStatus = () => {
           }
           setPaymentInfo(response.data);
         }
-        // Continue polling if status is still CREATED or other pending status
       } catch (error) {
         console.error("Status check failed:", error);
-        // If payment not found after some time, assume it was cancelled
         if (error.response?.status === 404) {
           setStatus("cancelled");
         }
       }
     };
 
-    // Start polling for payment status
-    const pollInterval = setInterval(checkPaymentStatus, 3000);
+    // Use a counter to track polling phases
+    let checkCount = 0;
+    let pollInterval;
+    
+    const adaptivePolling = async () => {
+      await checkPaymentStatus();
+      checkCount++;
+      
+      // After 30 rapid checks (30 seconds), switch to slower polling
+      if (checkCount === 30) {
+        console.log("🔄 Switching from rapid (1s) to normal (3s) polling after 30 seconds");
+        clearInterval(pollInterval);
+        pollInterval = setInterval(checkPaymentStatus, 3000);
+      }
+    };
+
+    // Start with rapid polling for first 30 seconds (every 1 second)
+    console.log("🚀 Starting rapid polling (1 second intervals) for quick cancellation detection");
+    pollInterval = setInterval(adaptivePolling, 1000);
 
     // Set up timeout
     const timeout = setTimeout(() => {
@@ -57,22 +70,22 @@ const PaymentStatus = () => {
 
     // Set up cancellation detection timeout (shorter than backend)
     const cancellationTimeout = setTimeout(() => {
-      // If still CREATED after 2 minutes, likely cancelled
+      // If still CREATED after 60 seconds, likely cancelled
       const checkAndMarkCancelled = async () => {
         try {
           const response = await axios.get(`/api/payment-status/${token}`);
           if (response.data.status === "CREATED") {
-            console.log("⏰ Payment still CREATED after 2 minutes - likely cancelled");
+            console.log("⚡ Frontend: Payment still CREATED after 60 seconds - likely cancelled");
             setStatus("cancelled");
             setPaymentInfo(response.data);
             clearInterval(pollInterval);
           }
         } catch (error) {
-          console.error("Error in cancellation check:", error);
+          console.error("Error in frontend cancellation check:", error);
         }
       };
       checkAndMarkCancelled();
-    }, 120000); // 2 minutes
+    }, 60000); // 1 minute frontend check
 
     // Countdown timer
     const countdownInterval = setInterval(() => {
@@ -166,9 +179,22 @@ const PaymentStatus = () => {
             <li>Open the Swish app on your phone</li>
             <li>You should see a payment request notification</li>
             <li>Review the payment details</li>
-            <li>Swipe to approve the payment</li>
+            <li>Swipe to approve or decline the payment</li>
             <li>Return to this page to see the confirmation</li>
           </ol>
+          
+          <div style={{ 
+            background: "#e7f7ff", 
+            padding: "10px", 
+            borderRadius: "6px", 
+            margin: "15px 0",
+            border: "1px solid #bee5eb"
+          }}>
+            <p style={{ margin: 0, color: "#0c5460", fontSize: "14px" }}>
+              ⚡ <strong>Quick Detection:</strong> This page checks for updates every second for the first 30 seconds, 
+              then every 3 seconds. Cancellations are detected within 45 seconds!
+            </p>
+          </div>
         </div>
 
         <div

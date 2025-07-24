@@ -110,14 +110,14 @@ router.get("/payment-status/:token", async (req, res) => {
     const createdAt = new Date(paymentData.createdAt);
     const now = new Date();
     const ageInMinutes = (now - createdAt) / (1000 * 60);
+    const ageInSeconds = (now - createdAt) / 1000;
 
-    // If payment is older than 10 minutes and still CREATED, mark as CANCELLED
-    if (paymentData.status === "CREATED" && ageInMinutes > 10) {
+    // RAPID CANCELLATION DETECTION: Mark as cancelled after just 45 seconds if still CREATED
+    if (paymentData.status === "CREATED" && ageInSeconds > 45) {
       console.log(
-        `⏰ Payment ${token} is older than 10 minutes and still CREATED - marking as CANCELLED`
+        `⚡ RAPID: Payment ${token} is older than 45 seconds and still CREATED - marking as CANCELLED`
       );
 
-      // Update payment status to CANCELLED
       const updated = updatePaymentFromCallback(
         paymentData.paymentRequestToken,
         {
@@ -129,19 +129,18 @@ router.get("/payment-status/:token", async (req, res) => {
       if (updated) {
         const updatedData = getPaymentData(token);
         console.log(
-          `✅ Payment ${token} automatically marked as CANCELLED due to timeout`
+          `✅ Payment ${token} rapidly marked as CANCELLED (45s timeout)`
         );
         return res.json(updatedData);
       }
     }
 
-    // Check if payment is older than 5 minutes and still CREATED (likely cancelled)
-    if (paymentData.status === "CREATED" && ageInMinutes > 5) {
+    // Secondary check: If payment is older than 2 minutes and still CREATED
+    if (paymentData.status === "CREATED" && ageInMinutes > 2) {
       console.log(
-        `⚠️ Payment ${token} is older than 5 minutes and still CREATED - likely cancelled by user`
+        `⏰ Payment ${token} is older than 2 minutes and still CREATED - marking as CANCELLED`
       );
 
-      // Update payment status to CANCELLED
       const updated = updatePaymentFromCallback(
         paymentData.paymentRequestToken,
         {
@@ -153,7 +152,7 @@ router.get("/payment-status/:token", async (req, res) => {
       if (updated) {
         const updatedData = getPaymentData(token);
         console.log(
-          `✅ Payment ${token} automatically marked as CANCELLED after 5 minutes`
+          `✅ Payment ${token} marked as CANCELLED after 2 minutes`
         );
         return res.json(updatedData);
       }
