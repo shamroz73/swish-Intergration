@@ -10,7 +10,9 @@
     "build": "cd client && npm run build",
     "install-client": "cd client && npm install",
     "install-all": "npm install && npm run install-client",
-    "build-and-start": "npm run build && npm start"
+    "build-and-start": "npm run build && npm start",
+    "generate-certs": "cd scripts/cert-tools && ./generate-base64-env.sh",
+    "validate-certs": "cd scripts/cert-tools/base64-output && node cert-validation.js"
   },
   "dependencies": {
     "axios": "^1.10.0",
