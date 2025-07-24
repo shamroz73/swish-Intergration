@@ -47,14 +47,14 @@ function updatePaymentFromCallback(id, callbackData) {
     const paymentData = paymentStore.get(id);
     paymentData.status = status;
     paymentData.paymentReference = paymentReference;
-    
+
     // Add completion timestamp for final statuses
     if (["PAID", "DECLINED", "ERROR", "CANCELLED"].includes(status)) {
       paymentData.completedAt = new Date().toISOString();
     } else {
       paymentData.updatedAt = new Date().toISOString();
     }
-    
+
     paymentStore.set(id, paymentData);
     return true;
   }
