@@ -13,6 +13,7 @@ import config from "../config/index.js";
  * @returns {Promise<Object>} - Axios response
  */
 async function makeSwishApiRequest(uuid, payload, agent) {
+  // v2 API for PUT requests (creating payments) - as per Swish documentation
   const apiUrl = `${config.swish.apiUrl}/swish-cpcapi/api/v2/paymentrequests`;
 
   const response = await axios.put(`${apiUrl}/${uuid}`, payload, {
@@ -32,10 +33,11 @@ async function makeSwishApiRequest(uuid, payload, agent) {
  * @returns {Promise<Object>} - Payment status response
  */
 async function checkSwishPaymentStatus(paymentRequestToken, agent) {
-  const apiUrl = `${config.swish.apiUrl}/swish-cpcapi/api/v2/paymentrequests`;
+  // v1 API for GET requests (checking payment status) - as per Swish documentation
+  const apiUrl = `${config.swish.apiUrl}/swish-cpcapi/api/v1/paymentrequests`;
   const fullUrl = `${apiUrl}/${paymentRequestToken}`;
   
-  console.log(`Checking payment status at: ${fullUrl}`);
+  console.log(`🔍 Checking payment status at: ${fullUrl} (using v1 API for GET)`);
 
   try {
     const response = await axios.get(fullUrl, {

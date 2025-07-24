@@ -61,6 +61,8 @@ router.post("/create-swish-payment", async (req, res) => {
     });
 
     // Make request to Swish API
+    // Note: Using v2 API for PUT requests (payment creation) as v1 is deprecated
+    // v1 is still used for GET/PATCH requests (status checking)
     console.log(`🚀 Creating Swish payment with UUID: ${uuid}`);
     const response = await makeSwishApiRequest(
       uuid,
@@ -151,9 +153,7 @@ router.get("/payment-status/:token", async (req, res) => {
 
       if (updated) {
         const updatedData = getPaymentData(token);
-        console.log(
-          `✅ Payment ${token} marked as CANCELLED after 2 minutes`
-        );
+        console.log(`✅ Payment ${token} marked as CANCELLED after 2 minutes`);
         return res.json(updatedData);
       }
     }
@@ -163,8 +163,21 @@ router.get("/payment-status/:token", async (req, res) => {
         paymentData.status
       }, swishId: ${paymentData.paymentRequestToken}, age: ${Math.round(
         ageInMinutes
-      )} minutes`
+      )} minutes, ageInSeconds: ${Math.round(ageInSeconds)}`
     );
+
+    // Log additional debugging info
+    console.log(`📊 Payment Debug Info:`);
+    console.log(`   - Token: ${token}`);
+    console.log(`   - Swish ID: ${paymentData.paymentRequestToken}`);
+    console.log(`   - Status: ${paymentData.status}`);
+    console.log(`   - Created: ${paymentData.createdAt}`);
+    console.log(`   - Age: ${Math.round(ageInMinutes)} minutes (${Math.round(ageInSeconds)} seconds)`);
+    console.log(`   - Payment Reference: ${paymentData.payeePaymentReference}`);
+    console.log(`   - Callback URL configured: ${process.env.SWISH_CALLBACK_URL ? 'YES' : 'NO'}`);
+    if (process.env.SWISH_CALLBACK_URL) {
+      console.log(`   - Callback URL: ${process.env.SWISH_CALLBACK_URL}`);
+    }
 
     // Return cached payment data
     res.json(paymentData);
